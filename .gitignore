@@ -1,0 +1,45 @@
+# Evidenze e artefatti non pubblicabili
+evidence/private/
+evidence/staging/
+evidence/raw/
+**/uploads/
+**/private/
+**/raw/
+
+# Acquisizioni forensi e file potenzialmente sensibili
+*.evtx
+*.etl
+*.pcap
+*.pcapng
+*.dmp
+*.mem
+*.raw
+*.vhd
+*.vhdx
+*.vmdk
+*.ova
+*.ovf
+*.zip
+*.7z
+*.rar
+
+# Segreti, credenziali e configurazioni locali
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12
+*.kdbx
+secrets/
+credentials/
+
+# Output locali
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
