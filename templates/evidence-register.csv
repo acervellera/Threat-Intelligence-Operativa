@@ -1,0 +1,7 @@
+evidence_id,classification,artifact_type,source,host_placeholder,user_placeholder,timestamp_utc,sha256,public_path,notes
+E-001,SANITIZED,endpoint_event,,,,,,,
+E-002,SANITIZED,process_tree,,,,,,,
+E-003,SANITIZED,file_registry_task_service,,,,,,,
+E-004,SANITIZED,network,,,,,,,
+E-005,SANITIZED,detection_alert,,,,,,,
+E-006,PUBLIC,cleanup_checklist,,,,,,,
