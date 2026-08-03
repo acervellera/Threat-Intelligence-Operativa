@@ -45,7 +45,7 @@ Evidenza pubblica: [`evidence/sanitized/ENV-2026-03-sinkhole-baseline.md`](../..
 
 Configurazione di rete sanificata: [`configs/libvirt/lab-lan.sanitized.xml`](../../configs/libvirt/lab-lan.sanitized.xml).
 
-Issue di riferimento: [#3 — Costruire rete host-only e macchine virtuali](../../issues/3).
+Issue di riferimento: `#3 — Costruire rete host-only e macchine virtuali`.
 
 ## Step 1 - Hypervisor e VM
 
