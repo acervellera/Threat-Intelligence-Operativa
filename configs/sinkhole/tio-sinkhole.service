@@ -1,0 +1,50 @@
+# LAB ONLY — systemd unit for the internal TIO HTTP sinkhole.
+
+[Unit]
+Description=TIO internal HTTP sinkhole
+Documentation=https://github.com/acervellera/Threat-Intelligence-Operativa
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+# Dedicated non-login account. The service must not run as root.
+User=tio-sinkhole
+Group=tio-sinkhole
+
+WorkingDirectory=/opt/tio-sinkhole
+ExecStart=/usr/bin/python3 /opt/tio-sinkhole/server.py
+
+# Restart only after unexpected failures.
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=10
+
+# New files created by the process cannot be group/world writable.
+UMask=0027
+
+# Basic systemd sandboxing validated in the LAB.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+
+# The service requires only IPv4 networking and local Unix sockets.
+RestrictAddressFamilies=AF_INET AF_UNIX
+
+# ProtectSystem=strict makes the filesystem read-only except this log path.
+ReadWritePaths=/var/log/tio-sinkhole
+
+# The service requires no Linux capabilities.
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
