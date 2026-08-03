@@ -1,0 +1,36 @@
+# LAB ONLY — logrotate policy for the TIO HTTP sinkhole.
+#
+# Install as:
+#   /etc/logrotate.d/tio-sinkhole
+#
+# Required ownership and mode:
+#   root:root 0644
+
+/var/log/tio-sinkhole/requests.jsonl {
+    # Evaluate rotation every day.
+    daily
+
+    # Retain at most fourteen archived logs.
+    rotate 14
+
+    # Rotate earlier when the file is at least 10 MiB at evaluation time.
+    maxsize 10M
+
+    # Do not fail before the service has created its first log.
+    missingok
+
+    # Do not rotate an empty file.
+    notifempty
+
+    # Compress older archives.
+    compress
+
+    # Keep the first rotated archive uncompressed until the next cycle.
+    delaycompress
+
+    # Create the new active log with the service identity and restricted mode.
+    create 0640 tio-sinkhole tio-sinkhole
+
+    # Perform log operations with the identity that owns the directory.
+    su tio-sinkhole tio-sinkhole
+}
