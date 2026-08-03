@@ -10,7 +10,7 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 | Ultimo checkpoint | `ENV-2026-03 — Baseline isolata SINKHOLE-LAB` |
 | Ultimo aggiornamento | `2026-08-03 UTC` |
 | Prossima attività | servizio sinkhole HTTP `10.10.10.30:8080` |
-| Issue operativa | `#3` |
+| Issue operativa | `#3 — Costruire rete host-only e macchine virtuali` |
 
 ## Avanzamento complessivo
 
