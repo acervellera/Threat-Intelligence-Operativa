@@ -1,30 +1,46 @@
 # 00 - Costruzione e validazione dell'ambiente
 
-**Stato:** NOT STARTED
+**Stato:** IN PROGRESS
 
 ## Obiettivo
 
 Arrivare a una baseline ripetibile da cui iniziano tutti i casi.
 
+## Checkpoint completato - SINKHOLE-LAB
+
+Il checkpoint sanificato `ENV-2026-03` documenta una VM Debian isolata e ripristinabile:
+
+- [x] 2 vCPU e 2 GiB RAM.
+- [x] IP statico `10.10.10.30/24`.
+- [x] Collegamento finale esclusivamente a `lab-lan`.
+- [x] Nessuna default route e nessun accesso Internet.
+- [x] SSH, Python 3, `curl`, `jq`, QEMU Guest Agent e SPICE Guest Agent.
+- [x] Directory `/opt/tio-sinkhole` e `/var/log/tio-sinkhole` con permessi `0750`.
+- [x] Snapshot `CLEAN-OS` creato a VM spenta.
+
+Evidenza pubblica: [`evidence/sanitized/ENV-2026-03-sinkhole-baseline.md`](../../evidence/sanitized/ENV-2026-03-sinkhole-baseline.md).
+
+Configurazione di rete sanificata: [`configs/libvirt/lab-lan.sanitized.xml`](../../configs/libvirt/lab-lan.sanitized.xml).
+
 ## Step 1 - Hypervisor e VM
 
-- [ ] Installare hypervisor con snapshot.
+- [x] Installare hypervisor con snapshot.
 - [ ] Creare WIN11-LAB: 2 vCPU, 8 GB RAM, 80 GB.
-- [ ] Creare SINKHOLE-LAB: Ubuntu/Debian con Python 3.
+- [x] Creare SINKHOLE-LAB: Ubuntu/Debian con Python 3.
 - [ ] Creare WAZUH-LAB: 4 vCPU, 8-12 GB RAM.
 - [ ] Creare APPLIANCE-LAB: 2 vCPU, 2-4 GB RAM.
 - [ ] Creare ANALYST-LAB opzionale.
-- [ ] Aggiornare sistemi e creare snapshot `CLEAN-OS`.
+- [ ] Aggiornare tutti i sistemi e creare snapshot `CLEAN-OS`.
 
 ## Step 2 - Rete
 
-- [ ] Creare host-only `10.10.10.0/24`.
-- [ ] Assegnare IP secondo la topologia.
-- [ ] Verificare assenza di bridge verso LAN reale.
-- [ ] Usare NAT solo per patching.
-- [ ] Disabilitare NAT prima del test.
-- [ ] Applicare egress deny.
-- [ ] Sincronizzare clock e annotare fuso.
+- [x] Creare host-only `10.10.10.0/24`.
+- [ ] Assegnare IP a tutte le VM secondo la topologia.
+- [x] Verificare assenza di bridge verso LAN reale.
+- [x] Usare NAT solo per patching.
+- [x] Disabilitare NAT prima del test su SINKHOLE-LAB.
+- [x] Applicare egress deny su SINKHOLE-LAB.
+- [ ] Sincronizzare clock e annotare fuso su tutte le VM.
 
 ## Step 3 - Wazuh
 
