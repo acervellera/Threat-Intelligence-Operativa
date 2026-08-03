@@ -68,23 +68,24 @@ Configurazione validata il `2026-08-03 UTC`:
 9. Pubblicare soltanto configurazioni ed evidenze sanificate.
 10. Ripetere il processo per WIN11-LAB, WAZUH-LAB e APPLIANCE-LAB.
 
-## Prossimo checkpoint
+## Prossimi checkpoint
 
-Implementare su SINKHOLE-LAB:
+Ordine operativo corrente:
 
-- servizio HTTP interno su `10.10.10.30:8080`;
+1. implementare e testare il servizio sinkhole HTTP;
+2. creare WAZUH-LAB;
+3. creare WIN11-LAB;
+4. creare APPLIANCE-LAB;
+5. installare la telemetria;
+6. eseguire smoke test;
+7. creare `LOGGING-READY` e `LOGGING-READY-LINUX`.
+
+Il servizio sinkhole deve includere:
+
+- server HTTP interno su `10.10.10.30:8080`;
 - endpoint benigno `/heartbeat`;
 - logging JSONL;
 - esecuzione tramite utente dedicato e servizio `systemd`;
 - nessun upload, comando remoto o esecuzione di contenuti ricevuti.
-
-Successivamente:
-
-1. creare WAZUH-LAB;
-2. creare WIN11-LAB;
-3. creare APPLIANCE-LAB;
-4. installare la telemetria;
-5. eseguire smoke test;
-6. creare `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
 La guida eseguibile e la checklist completa sono in [`labs/00-environment`](../../labs/00-environment/README.md).
