@@ -9,7 +9,8 @@ Percorso pubblico e progressivo per trasformare fonti di threat intelligence in 
 **Fase primaria attiva:** `STEP-02 — Rete e VM`  
 **Stato STEP-02:** `IN PROGRESS`  
 **Checkpoint più recente:** `ENV-2026-04 — SINKHOLE-READY`  
-**Stato STEP-04:** `IN PROGRESS`, limitatamente alla componente sinkhole  
+**Baseline telemetria:** `IN PROGRESS`, sorgente JSONL sinkhole pronta  
+**Smoke test STEP-04:** `IN PROGRESS`, limitatamente ai test HTTP del sinkhole  
 **Data:** `2026-08-03 UTC`
 
 Completato e verificato:
@@ -35,6 +36,7 @@ Riferimenti:
 - [checkpoint SINKHOLE-READY](evidence/sanitized/ENV-2026-04-sinkhole-ready.md);
 - [configurazione sanificata della rete](configs/libvirt/lab-lan.sanitized.xml);
 - [servizio sinkhole e guida di installazione](configs/sinkhole/README.md);
+- [baseline di telemetria](docs/03-telemetry-baseline/README.md);
 - [stato complessivo](PROGRESS.md);
 - [roadmap aggiornata](ROADMAP.md);
 - Issue `#3 — Costruire rete host-only e macchine virtuali`;
@@ -72,8 +74,8 @@ Ogni caso deve produrre:
 | 0 | Governance e sicurezza | [`docs/00-governance`](docs/00-governance/README.md) | Regole PUBLIC/SANITIZED/PRIVATE | IN PROGRESS |
 | 1 | Metodo analitico | [`docs/01-method`](docs/01-method/README.md) | Scheda A/B/C e catena neutra | NOT STARTED |
 | 2 | Costruzione ambiente | [`labs/00-environment`](labs/00-environment/README.md) | Topologia, snapshot e health check | IN PROGRESS |
-| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | Sysmon, PowerShell, auditd e Wazuh validati | NOT STARTED |
-| 4 | Smoke test e detection | [`docs/04-detection-engineering`](docs/04-detection-engineering/README.md) | Matrice TP/TN, tuning e metriche | IN PROGRESS, sinkhole only |
+| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | Sinkhole, Sysmon, PowerShell, auditd e Wazuh | IN PROGRESS, sinkhole source ready |
+| 4 | Detection engineering | [`docs/04-detection-engineering`](docs/04-detection-engineering/README.md) | Matrice TP/TN, tuning e metriche | NOT STARTED |
 | 5-10 | Sei campagne | [`labs`](labs/README.md) | Un caso completo per campagna | BLOCKED |
 | 11 | Reporting | [`docs/05-reporting`](docs/05-reporting/README.md) | Finding, IR report e timeline UTC | NOT STARTED |
 | 12 | Pubblicazione | [`docs/06-publication`](docs/06-publication/README.md) | Evidenze sanificate e release checklist | NOT STARTED |
