@@ -4,13 +4,18 @@ Questa cartella ospita esclusivamente copie `SANITIZED` o documentazione `PUBLIC
 
 ## Stato corrente
 
-Primo checkpoint pubblicato:
+Checkpoint pubblicati:
 
 | Exercise ID | Fase | Evidenza | Esito | Data UTC |
 |---|---|---|---|---|
 | `ENV-2026-03` | STEP-02 | [`sanitized/ENV-2026-03-sinkhole-baseline.md`](sanitized/ENV-2026-03-sinkhole-baseline.md) | PASS | 2026-08-03 |
+| `ENV-2026-04` | STEP-04 parziale | [`sanitized/ENV-2026-04-sinkhole-ready.md`](sanitized/ENV-2026-04-sinkhole-ready.md) | PASS | 2026-08-03 |
 
-Il documento descrive la baseline isolata di `SINKHOLE-LAB` senza pubblicare UUID, MAC address, percorsi dell'host, immagini disco, ISO o log completi.
+`ENV-2026-03` descrive la baseline isolata e lo snapshot `CLEAN-OS`.
+
+`ENV-2026-04` descrive il servizio HTTP benigno, i test 200/404/405, il log JSONL, la rotazione, il health check automatico e lo snapshot `SINKHOLE-READY`.
+
+Entrambi i documenti escludono UUID, MAC address, percorsi dell'host, immagini disco, ISO e log completi.
 
 ## Convenzione
 
@@ -48,7 +53,17 @@ Ogni artefatto deve dichiarare:
 - test eseguiti e risultato;
 - limiti dell'evidenza;
 - riferimento alla configurazione che ha prodotto il test;
-- SHA-256 quando viene pubblicato un file derivato.
+- SHA-256 quando viene pubblicato un file derivato stabile.
+
+## Gestione delle acquisizioni incomplete
+
+Un'acquisizione non deve essere descritta come completa quando una parte dei comandi non è stata eseguita o registrata.
+
+Nel checkpoint `ENV-2026-04`, la prima acquisizione privata aggregata non ha catturato due sezioni eseguite via SSH perché `sudo` richiedeva un terminale interattivo. Il documento pubblico:
+
+- dichiara esplicitamente la limitazione;
+- distingue il contenuto dell'acquisizione aggregata dalle verifiche interattive;
+- non usa l'hash del file parziale come prova di controlli che il file non contiene.
 
 ## Contenuti vietati
 
@@ -64,3 +79,12 @@ Non pubblicare:
 ## Manifest minimo
 
 Per ogni file pubblico registrare Evidence ID, classificazione, timestamp UTC, SHA-256, fonte, trasformazioni applicate e reviewer.
+
+## Prossime evidenze pianificate
+
+- baseline `CLEAN-OS` di WAZUH-LAB;
+- installazione Wazuh all-in-one;
+- ingestione del JSONL del sinkhole;
+- baseline `CLEAN-OS` di WIN11-LAB;
+- baseline `CLEAN-OS` di APPLIANCE-LAB;
+- smoke test end-to-end e snapshot `LOGGING-READY`.
