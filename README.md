@@ -4,6 +4,34 @@ Percorso pubblico e progressivo per trasformare fonti di threat intelligence in 
 
 > Il repository riproduce comportamenti osservabili e post-condizioni, non malware, exploit operativi o furto di credenziali. Tutte le attività devono avvenire in VM isolate, con dati sintetici, snapshot e destinazioni di rete interne.
 
+## Stato corrente
+
+**Fase attiva:** `STEP-02 — Rete e VM`  
+**Stato:** `IN PROGRESS`  
+**Ultimo checkpoint:** `ENV-2026-03 — Baseline isolata SINKHOLE-LAB`  
+**Data:** `2026-08-03 UTC`
+
+Completato e verificato:
+
+- hypervisor KVM/QEMU con libvirt;
+- rete host-only `lab-lan` su `10.10.10.0/24`, senza forwarding;
+- `SINKHOLE-LAB` su Debian 13 con IP statico `10.10.10.30/24`;
+- NAT usato soltanto per installazione e patching, poi rimosso;
+- assenza di default route e accesso Internet dopo l'isolamento;
+- SSH, Python 3, `curl`, `jq`, QEMU Guest Agent e SPICE Guest Agent;
+- snapshot `CLEAN-OS` creato a VM spenta;
+- evidenza pubblica sanificata e configurazione libvirt ridotta.
+
+Riferimenti:
+
+- [evidenza sanificata del checkpoint](evidence/sanitized/ENV-2026-03-sinkhole-baseline.md);
+- [configurazione sanificata della rete](configs/libvirt/lab-lan.sanitized.xml);
+- [stato complessivo](PROGRESS.md);
+- [roadmap aggiornata](ROADMAP.md);
+- [Issue #3 — costruzione della topologia](../../issues/3).
+
+**Prossimo checkpoint operativo:** implementare il servizio HTTP sinkhole su `10.10.10.30:8080`, con endpoint `/heartbeat`, logging JSONL e servizio `systemd`, quindi proseguire con le VM rimanenti.
+
 ## Obiettivo
 
 Completare il percorso dall'allestimento del laboratorio fino alla pubblicazione di sei casi documentati:
@@ -29,18 +57,31 @@ Ogni caso deve produrre:
 
 ## Inizia qui
 
-| Ordine | Fase | Cartella | Uscita richiesta |
-|---:|---|---|---|
-| 0 | Governance e sicurezza | [`docs/00-governance`](docs/00-governance/README.md) | Regole PUBLIC/SANITIZED/PRIVATE |
-| 1 | Metodo analitico | [`docs/01-method`](docs/01-method/README.md) | Scheda A/B/C e catena neutra |
-| 2 | Costruzione ambiente | [`labs/00-environment`](labs/00-environment/README.md) | Topologia, snapshot e health check |
-| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | Sysmon, PowerShell, auditd e Wazuh validati |
-| 4 | Detection engineering | [`docs/04-detection-engineering`](docs/04-detection-engineering/README.md) | Matrice TP/TN, tuning e metriche |
-| 5-10 | Sei campagne | [`labs`](labs/README.md) | Un caso completo per campagna |
-| 11 | Reporting | [`docs/05-reporting`](docs/05-reporting/README.md) | Finding, IR report e timeline UTC |
-| 12 | Pubblicazione | [`docs/06-publication`](docs/06-publication/README.md) | Evidenze sanificate e release checklist |
+| Ordine | Fase | Cartella | Uscita richiesta | Stato corrente |
+|---:|---|---|---|---|
+| 0 | Governance e sicurezza | [`docs/00-governance`](docs/00-governance/README.md) | Regole PUBLIC/SANITIZED/PRIVATE | IN PROGRESS |
+| 1 | Metodo analitico | [`docs/01-method`](docs/01-method/README.md) | Scheda A/B/C e catena neutra | NOT STARTED |
+| 2 | Costruzione ambiente | [`labs/00-environment`](labs/00-environment/README.md) | Topologia, snapshot e health check | IN PROGRESS |
+| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | Sysmon, PowerShell, auditd e Wazuh validati | NOT STARTED |
+| 4 | Detection engineering | [`docs/04-detection-engineering`](docs/04-detection-engineering/README.md) | Matrice TP/TN, tuning e metriche | NOT STARTED |
+| 5-10 | Sei campagne | [`labs`](labs/README.md) | Un caso completo per campagna | NOT STARTED |
+| 11 | Reporting | [`docs/05-reporting`](docs/05-reporting/README.md) | Finding, IR report e timeline UTC | NOT STARTED |
+| 12 | Pubblicazione | [`docs/06-publication`](docs/06-publication/README.md) | Evidenze sanificate e release checklist | NOT STARTED |
 
 Il piano operativo completo è in [`ROADMAP.md`](ROADMAP.md). Lo stato di avanzamento è in [`PROGRESS.md`](PROGRESS.md).
+
+## Topologia prevista
+
+| Nodo | Indirizzo | Ruolo | Stato |
+|---|---|---|---|
+| Host Ubuntu / bridge libvirt | `10.10.10.1` | Gestione locale della rete LAB | VALIDATED |
+| WIN11-LAB | `10.10.10.20` | Sysmon, PowerShell logging, Wazuh agent | NOT STARTED |
+| SINKHOLE-LAB | `10.10.10.30` | HTTP interno, heartbeat e log JSONL | CLEAN-OS READY |
+| WAZUH-LAB | `10.10.10.40` | Manager, indexer e dashboard | NOT STARTED |
+| APPLIANCE-LAB | `10.10.10.50` | auditd, FIM e BRICKSTORM | NOT STARTED |
+| ANALYST-LAB | `10.10.10.60` | Analisi e reporting, opzionale | NOT STARTED |
+
+La rete LAB è priva di forwarding. Le interfacce NAT sono ammesse solo durante installazione e aggiornamento e devono essere rimosse prima dei test.
 
 ## Regola di pubblicazione
 
@@ -71,11 +112,11 @@ Le evidenze raw restano fuori dal repository in uno storage privato. La cartella
 
 ## Stati di avanzamento
 
-- `NOT STARTED`: non iniziato.
-- `IN PROGRESS`: attività in corso, nessuna evidenza pubblicata.
-- `VALIDATED`: test positivo, test negativo e cleanup completati.
-- `SANITIZED`: revisione privacy e sicurezza completata.
-- `PUBLISHED`: caso pubblicato con hash e fonti.
+- `NOT STARTED`: attività non iniziata.
+- `IN PROGRESS`: attività avviata; possono esistere checkpoint ed evidenze parziali.
+- `VALIDATED`: Definition of Done della fase completata con verifiche ripetibili.
+- `SANITIZED`: copia pubblica revisionata per privacy e sicurezza.
+- `PUBLISHED`: caso completo pubblicato con hash, fonti e limiti dichiarati.
 
 ## Metodo di lavoro per ogni caso
 
