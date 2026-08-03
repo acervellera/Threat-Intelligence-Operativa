@@ -1,9 +1,9 @@
 # 00 - Costruzione e validazione dell'ambiente
 
 **Stato:** IN PROGRESS  
-**Fase attiva:** STEP-02 — Rete e VM  
-**Ultimo checkpoint:** `ENV-2026-03 — SINKHOLE-LAB CLEAN-OS`  
-**Prossimo checkpoint:** servizio sinkhole HTTP su `10.10.10.30:8080`
+**Fase primaria:** STEP-02 — Rete e VM  
+**Ultimo checkpoint:** `ENV-2026-04 — SINKHOLE-READY`  
+**Prossimo checkpoint:** `WAZUH-LAB` su `10.10.10.40`
 
 ## Obiettivo
 
@@ -20,14 +20,14 @@ Arrivare a una baseline ripetibile da cui iniziano tutti i casi, mantenendo sepa
 |---|---|---|---|
 | Host Ubuntu / `lab-lan` | `10.10.10.1` | VALIDATED | n/a |
 | WIN11-LAB | `10.10.10.20` | NOT STARTED | - |
-| SINKHOLE-LAB | `10.10.10.30` | CLEAN-OS READY | `CLEAN-OS` |
-| WAZUH-LAB | `10.10.10.40` | NOT STARTED | - |
+| SINKHOLE-LAB | `10.10.10.30` | SINKHOLE-READY | `CLEAN-OS`, `SINKHOLE-READY` |
+| WAZUH-LAB | `10.10.10.40` | NEXT | - |
 | APPLIANCE-LAB | `10.10.10.50` | NOT STARTED | - |
 | ANALYST-LAB | `10.10.10.60` | OPTIONAL | - |
 
-## Checkpoint completato - SINKHOLE-LAB
+## Checkpoint ENV-2026-03 — CLEAN-OS
 
-Il checkpoint sanificato `ENV-2026-03` documenta una VM Debian isolata e ripristinabile:
+Il primo checkpoint documenta una VM Debian isolata e ripristinabile:
 
 - [x] 2 vCPU e 2 GiB RAM.
 - [x] Debian 13 amd64 aggiornato.
@@ -38,14 +38,55 @@ Il checkpoint sanificato `ENV-2026-03` documenta una VM Debian isolata e riprist
 - [x] SSH, Python 3, `curl`, `jq`, QEMU Guest Agent e SPICE Guest Agent.
 - [x] Directory `/opt/tio-sinkhole` e `/var/log/tio-sinkhole` con permessi `0750`.
 - [x] Snapshot `CLEAN-OS` creato a VM spenta.
-- [x] Evidenza pubblica sanificata.
-- [x] Configurazione libvirt ridotta e priva di identificatori locali.
 
-Evidenza pubblica: [`evidence/sanitized/ENV-2026-03-sinkhole-baseline.md`](../../evidence/sanitized/ENV-2026-03-sinkhole-baseline.md).
+Evidenza: [`ENV-2026-03-sinkhole-baseline.md`](../../evidence/sanitized/ENV-2026-03-sinkhole-baseline.md).
 
-Configurazione di rete sanificata: [`configs/libvirt/lab-lan.sanitized.xml`](../../configs/libvirt/lab-lan.sanitized.xml).
+Configurazione rete: [`lab-lan.sanitized.xml`](../../configs/libvirt/lab-lan.sanitized.xml).
 
-Issue di riferimento: `#3 — Costruire rete host-only e macchine virtuali`.
+## Checkpoint ENV-2026-04 — SINKHOLE-READY
+
+Il secondo checkpoint aggiunge il servizio applicativo benigno:
+
+- [x] utente di sistema dedicato `tio-sinkhole`;
+- [x] servizio `systemd` attivo e abilitato;
+- [x] listener esclusivo su `10.10.10.30:8080`;
+- [x] assenza di listener globale `0.0.0.0:8080`;
+- [x] endpoint `GET/HEAD /heartbeat`;
+- [x] risposta positiva HTTP 200 e JSON valido;
+- [x] risposta HTTP 404 per percorsi inesistenti;
+- [x] rifiuto HTTP 405 per POST e metodi di modifica;
+- [x] log JSONL in `/var/log/tio-sinkhole/requests.jsonl`;
+- [x] campi `timestamp_utc`, `client_ip`, `method`, `path`, `query`, `user_agent`, `status`;
+- [x] logrotate giornaliero, 14 archivi, compressione e `maxsize 10M`;
+- [x] test dalla VM e dall'host `10.10.10.1`;
+- [x] health check automatico con 16 controlli superati e 0 falliti;
+- [x] isolamento confermato senza default route;
+- [x] snapshot `SINKHOLE-READY` creato a VM spenta;
+- [x] relazione snapshot `CLEAN-OS -> SINKHOLE-READY` verificata.
+
+Evidenza: [`ENV-2026-04-sinkhole-ready.md`](../../evidence/sanitized/ENV-2026-04-sinkhole-ready.md).
+
+Configurazioni e guida: [`configs/sinkhole`](../../configs/sinkhole/README.md).
+
+Health check: [`scripts/common/tio-sinkhole-check.sh`](../../scripts/common/tio-sinkhole-check.sh).
+
+## Flusso del servizio sinkhole
+
+```text
+client LAB
+   |
+   | HTTP verso 10.10.10.30:8080
+   v
+systemd -> python3 server.py -> risposta 200/404/405
+                              |
+                              v
+                 requests.jsonl, un evento per riga
+                              |
+                              v
+                 logrotate, 14 archivi compressi
+```
+
+Il programma apre il file JSONL in modalità append per ogni richiesta e lo chiude subito dopo. Per questo `logrotate` può rinominare il file attivo e crearne uno nuovo senza riavviare il servizio.
 
 ## Step 1 - Hypervisor e VM
 
@@ -70,23 +111,31 @@ Issue di riferimento: `#3 — Costruire rete host-only e macchine virtuali`.
 
 ## Step 3 - Sinkhole HTTP
 
-Questo è il prossimo passaggio operativo.
-
-- [ ] Creare applicazione HTTP benigna in `/opt/tio-sinkhole`.
-- [ ] Esporre `10.10.10.30:8080`.
-- [ ] Implementare endpoint `/heartbeat`.
-- [ ] Scrivere log JSONL in `/var/log/tio-sinkhole`.
-- [ ] Creare utente di servizio dedicato.
-- [ ] Creare unità `systemd` con hardening minimo.
-- [ ] Verificare avvio automatico e restart controllato.
-- [ ] Verificare che non accetti comandi o esegua contenuti ricevuti.
-- [ ] Pubblicare script e unità soltanto dopo test e sanificazione.
+- [x] Creare applicazione HTTP benigna in `/opt/tio-sinkhole`.
+- [x] Esporre esclusivamente `10.10.10.30:8080`.
+- [x] Implementare endpoint `/heartbeat`.
+- [x] Scrivere log JSONL in `/var/log/tio-sinkhole`.
+- [x] Creare utente di servizio dedicato.
+- [x] Creare unità `systemd` con hardening minimo.
+- [x] Verificare avvio automatico.
+- [x] Verificare che non accetti upload o comandi.
+- [x] Configurare rotazione e retention dei log.
+- [x] Pubblicare script, unità, health check ed evidenza sanificata.
+- [ ] Ripetere il health check dopo rollback da `SINKHOLE-READY`.
+- [ ] Inviare il JSONL a Wazuh.
 
 ## Step 4 - Wazuh
 
-- [ ] Installare Wazuh all-in-one.
+Questo è il prossimo passaggio operativo.
+
+- [ ] Creare WAZUH-LAB con 4 vCPU e 8-12 GiB RAM.
+- [ ] Configurare `10.10.10.40/24` sulla rete `lab-lan`.
+- [ ] Installare Wazuh all-in-one usando NAT temporaneo.
+- [ ] Rimuovere NAT dopo installazione e aggiornamento.
+- [ ] Verificare egress deny.
 - [ ] Registrare agent Windows e Linux.
-- [ ] Verificare heartbeat e inventario.
+- [ ] Acquisire il log JSONL del sinkhole.
+- [ ] Verificare parsing dei campi e timestamp UTC.
 - [ ] Definire retention di laboratorio.
 
 ## Step 5 - Windows telemetry
@@ -123,14 +172,18 @@ Generare:
 2. file marker;
 3. richiesta heartbeat;
 4. evento nel dashboard;
-5. cleanup del marker.
+5. cleanup del marker;
+6. ripetizione dopo rollback.
+
+Il test HTTP del sinkhole è pronto, ma lo smoke test completo resta bloccato finché Wazuh e gli endpoint non sono disponibili.
 
 ## Step 9 - Snapshot finale
 
-- [ ] Eseguire checklist baseline.
+- [x] Creare snapshot applicativo intermedio `SINKHOLE-READY`.
+- [ ] Eseguire checklist baseline end-to-end.
 - [ ] Creare `LOGGING-READY`.
 - [ ] Creare `LOGGING-READY-LINUX`.
-- [ ] Registrare hash delle configurazioni.
+- [ ] Registrare hash delle configurazioni finali.
 
 ## Definition of Done
 
