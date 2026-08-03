@@ -28,7 +28,7 @@ Riferimenti:
 - [configurazione sanificata della rete](configs/libvirt/lab-lan.sanitized.xml);
 - [stato complessivo](PROGRESS.md);
 - [roadmap aggiornata](ROADMAP.md);
-- [Issue #3 — costruzione della topologia](../../issues/3).
+- Issue `#3 — Costruire rete host-only e macchine virtuali`.
 
 **Prossimo checkpoint operativo:** implementare il servizio HTTP sinkhole su `10.10.10.30:8080`, con endpoint `/heartbeat`, logging JSONL e servizio `systemd`, quindi proseguire con le VM rimanenti.
 
