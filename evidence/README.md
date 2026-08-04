@@ -16,7 +16,7 @@ Checkpoint pubblicati:
 
 `ENV-2026-04` descrive il servizio HTTP benigno, i test 200/404/405, il log JSONL, la rotazione, il health check automatico e lo snapshot `SINKHOLE-READY`.
 
-`ENV-2026-05` descrive WAZUH-LAB, la registrazione dell'agent Linux, l'acquisizione del JSONL, le regole custom 100101-100103 e la verifica degli alert fino al dashboard.
+`ENV-2026-05` descrive WAZUH-LAB, la registrazione dell'agent Linux, l'acquisizione del JSONL, le regole custom 100101-100103, la rimozione della NAT da entrambi i nodi, la verifica della pipeline isolata e lo snapshot `WAZUH-PIPELINE-READY`.
 
 I documenti escludono UUID, MAC address, percorsi dell'host, immagini disco, ISO, credenziali e log completi.
 
@@ -66,10 +66,12 @@ Nel checkpoint `ENV-2026-04`, la prima acquisizione privata aggregata non ha cat
 
 Nel checkpoint `ENV-2026-05`:
 
-- la NIC NAT di WAZUH-LAB è ancora temporaneamente presente;
-- lo snapshot `WAZUH-READY` precede la configurazione finale della pipeline JSONL e delle regole;
+- la pipeline Linux/JSONL è stata verificata con SINKHOLE-LAB e WAZUH-LAB prive di NAT e default route;
+- i servizi Wazuh e l'agent sono stati ricontrollati dopo riavvio;
+- è stato creato lo snapshot `WAZUH-PIPELINE-READY`;
 - il checkpoint non è descritto come `LOGGING-READY`;
-- test negativi, metriche e ripetizione dopo rollback restano da completare.
+- test negativi formali, metriche, telemetria Windows/appliance e ripetizione dopo rollback restano da completare;
+- una sorgente NTP interna resta da predisporre.
 
 ## Contenuti vietati
 
@@ -88,11 +90,11 @@ Per ogni file pubblico registrare Evidence ID, classificazione, timestamp UTC, S
 
 ## Prossime evidenze pianificate
 
-- isolamento finale di WAZUH-LAB senza NAT;
 - baseline `CLEAN-OS` di WIN11-LAB;
 - ingestione Sysmon, PowerShell e Task Scheduler;
 - baseline `CLEAN-OS` di APPLIANCE-LAB;
 - auditd e FIM;
 - smoke test multi-sorgente end-to-end;
+- test negativi e metriche;
 - ripetizione dopo rollback;
 - snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
