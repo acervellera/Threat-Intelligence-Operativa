@@ -11,10 +11,21 @@ Qui vengono pubblicate solo configurazioni didattiche validate, ridotte e prive 
 | sinkhole | [`sinkhole/tio-sinkhole.service`](sinkhole/tio-sinkhole.service) | VALIDATED | `ENV-2026-04` |
 | sinkhole | [`sinkhole/tio-sinkhole.logrotate`](sinkhole/tio-sinkhole.logrotate) | VALIDATED | `ENV-2026-04` |
 | sinkhole | [`sinkhole/README.md`](sinkhole/README.md) | PUBLIC | installazione, verifica e rollback |
+| Wazuh agent Linux | [`wazuh/linux-localfile/tio-sinkhole-jsonl.xml`](wazuh/linux-localfile/tio-sinkhole-jsonl.xml) | VALIDATED | `ENV-2026-05` |
+| Wazuh manager | [`wazuh/rules/tio_sinkhole_rules.xml`](wazuh/rules/tio_sinkhole_rules.xml) | VALIDATED | `ENV-2026-05` |
+| Wazuh | [`wazuh/README.md`](wazuh/README.md) | PUBLIC | installazione, test e rollback |
 
 La configurazione `lab-lan.sanitized.xml` documenta una rete host-only su `10.10.10.0/24`. Sono stati rimossi UUID, indirizzi MAC e altri metadati locali. L'assenza dell'elemento `<forward>` rappresenta il requisito di isolamento.
 
 La directory `sinkhole/` documenta il servizio HTTP benigno validato su `10.10.10.30:8080`, con endpoint `/heartbeat`, logging JSONL, esecuzione non-root, hardening `systemd` e rotazione dei log.
+
+La directory `wazuh/` documenta la prima pipeline Linux validata:
+
+```text
+requests.jsonl -> Wazuh Agent -> Manager -> Filebeat -> Indexer -> Dashboard
+```
+
+Comprende il frammento `<localfile>` dell'agent e le regole custom `100100`-`100103` per distinguere heartbeat 200, 404 e 405.
 
 ## Struttura
 
@@ -23,8 +34,10 @@ configs/
 ├── libvirt/
 ├── sinkhole/
 ├── sysmon/
-├── wazuh/windows-eventchannel/
-├── wazuh/rules/
+├── wazuh/
+│   ├── linux-localfile/
+│   ├── rules/
+│   └── windows-eventchannel/
 ├── auditd/
 └── fim/
 ```
@@ -62,17 +75,17 @@ Le configurazioni applicative pubbliche devono inoltre dichiarare:
 | `libvirt/` | rete e configurazioni VM sanificate | IN PROGRESS |
 | `sinkhole/` | HTTP interno, systemd e logrotate | VALIDATED |
 | `sysmon/` | configurazione Sysmon di laboratorio | NOT STARTED |
+| `wazuh/linux-localfile/` | raccolta JSONL Linux | VALIDATED |
+| `wazuh/rules/` | prime regole custom sinkhole | IN PROGRESS |
 | `wazuh/windows-eventchannel/` | raccolta EventChannel Windows | NOT STARTED |
-| `wazuh/rules/` | regole di detection custom | NOT STARTED |
 | `auditd/` | audit Linux per execve, systemd e appliance | NOT STARTED |
 | `fim/` | monitoraggio integrità file | NOT STARTED |
 
-## Prossima configurazione
+## Prossime configurazioni
 
-Il prossimo artefatto previsto è la configurazione di raccolta Wazuh per:
+- EventChannel Windows per Sysmon, PowerShell e Task Scheduler;
+- regole correlate con process creation e rete;
+- auditd e FIM per APPLIANCE-LAB;
+- tuning delle regole sinkhole con frequenza, test negativi e host role.
 
-```text
-/var/log/tio-sinkhole/requests.jsonl
-```
-
-La configurazione sarà pubblicata soltanto dopo verifica del parsing dei campi e del timestamp UTC.
+Evidenza corrente: [`../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`](../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md).
