@@ -2,8 +2,8 @@
 
 **Stato:** IN PROGRESS  
 **Fase primaria:** STEP-02 — Rete e VM  
-**Ultimo checkpoint:** `ENV-2026-04 — SINKHOLE-READY`  
-**Prossimo checkpoint:** `WAZUH-LAB` su `10.10.10.40`
+**Ultimo checkpoint:** `ENV-2026-05 — pipeline Wazuh ↔ sinkhole`  
+**Prossimo checkpoint:** isolamento finale di WAZUH-LAB, poi WIN11-LAB
 
 ## Obiettivo
 
@@ -19,140 +19,158 @@ Arrivare a una baseline ripetibile da cui iniziano tutti i casi, mantenendo sepa
 | Nodo | IP | Stato | Snapshot |
 |---|---|---|---|
 | Host Ubuntu / `lab-lan` | `10.10.10.1` | VALIDATED | n/a |
-| WIN11-LAB | `10.10.10.20` | NOT STARTED | - |
-| SINKHOLE-LAB | `10.10.10.30` | SINKHOLE-READY | `CLEAN-OS`, `SINKHOLE-READY` |
-| WAZUH-LAB | `10.10.10.40` | NEXT | - |
+| WIN11-LAB | `10.10.10.20` | NEXT | - |
+| SINKHOLE-LAB | `10.10.10.30` | SINKHOLE-READY, agent Active | `CLEAN-OS`, `SINKHOLE-READY` |
+| WAZUH-LAB | `10.10.10.40` | PIPELINE VALIDATED, NAT temporanea | `CLEAN-OS`, `WAZUH-READY` |
 | APPLIANCE-LAB | `10.10.10.50` | NOT STARTED | - |
 | ANALYST-LAB | `10.10.10.60` | OPTIONAL | - |
 
-## Checkpoint ENV-2026-03 — CLEAN-OS
+## Checkpoint ENV-2026-03 — CLEAN-OS sinkhole
 
-Il primo checkpoint documenta una VM Debian isolata e ripristinabile:
-
-- [x] 2 vCPU e 2 GiB RAM.
 - [x] Debian 13 amd64 aggiornato.
-- [x] Hostname `sinkhole-lab` e dominio LAB `lab.internal`.
+- [x] Hostname `sinkhole-lab` e dominio `lab.internal`.
 - [x] IP statico `10.10.10.30/24`.
 - [x] Collegamento finale esclusivamente a `lab-lan`.
 - [x] Nessuna default route e nessun accesso Internet.
-- [x] SSH, Python 3, `curl`, `jq`, QEMU Guest Agent e SPICE Guest Agent.
-- [x] Directory `/opt/tio-sinkhole` e `/var/log/tio-sinkhole` con permessi `0750`.
+- [x] SSH e strumenti minimi.
 - [x] Snapshot `CLEAN-OS` creato a VM spenta.
 
 Evidenza: [`ENV-2026-03-sinkhole-baseline.md`](../../evidence/sanitized/ENV-2026-03-sinkhole-baseline.md).
 
-Configurazione rete: [`lab-lan.sanitized.xml`](../../configs/libvirt/lab-lan.sanitized.xml).
-
 ## Checkpoint ENV-2026-04 — SINKHOLE-READY
 
-Il secondo checkpoint aggiunge il servizio applicativo benigno:
-
-- [x] utente di sistema dedicato `tio-sinkhole`;
-- [x] servizio `systemd` attivo e abilitato;
+- [x] servizio `systemd` non-root;
 - [x] listener esclusivo su `10.10.10.30:8080`;
-- [x] assenza di listener globale `0.0.0.0:8080`;
 - [x] endpoint `GET/HEAD /heartbeat`;
-- [x] risposta positiva HTTP 200 e JSON valido;
-- [x] risposta HTTP 404 per percorsi inesistenti;
-- [x] rifiuto HTTP 405 per POST e metodi di modifica;
-- [x] log JSONL in `/var/log/tio-sinkhole/requests.jsonl`;
-- [x] campi `timestamp_utc`, `client_ip`, `method`, `path`, `query`, `user_agent`, `status`;
-- [x] logrotate giornaliero, 14 archivi, compressione e `maxsize 10M`;
-- [x] test dalla VM e dall'host `10.10.10.1`;
-- [x] health check automatico con 16 controlli superati e 0 falliti;
-- [x] isolamento confermato senza default route;
-- [x] snapshot `SINKHOLE-READY` creato a VM spenta;
-- [x] relazione snapshot `CLEAN-OS -> SINKHOLE-READY` verificata.
+- [x] test HTTP 200, 404 e 405;
+- [x] log JSONL con campi strutturati;
+- [x] logrotate giornaliero, 14 archivi e compressione;
+- [x] health check 16 PASS / 0 FAIL;
+- [x] isolamento senza default route;
+- [x] snapshot `SINKHOLE-READY`.
 
 Evidenza: [`ENV-2026-04-sinkhole-ready.md`](../../evidence/sanitized/ENV-2026-04-sinkhole-ready.md).
 
-Configurazioni e guida: [`configs/sinkhole`](../../configs/sinkhole/README.md).
+## Checkpoint ENV-2026-05 — Pipeline Wazuh ↔ sinkhole
 
-Health check: [`scripts/common/tio-sinkhole-check.sh`](../../scripts/common/tio-sinkhole-check.sh).
+### WAZUH-LAB
 
-## Flusso del servizio sinkhole
+- [x] Ubuntu Server 24.04 LTS.
+- [x] 4 vCPU e circa 8 GiB RAM.
+- [x] IP statico `10.10.10.40/24` su `lab-lan`.
+- [x] FQDN `wazuh-lab.lab.internal` e UTC.
+- [x] filesystem LVM root esteso a circa 77 GiB.
+- [x] snapshot `CLEAN-OS` prima dell'installazione Wazuh.
+- [x] Wazuh all-in-one installato.
+- [x] `wazuh-indexer`, `wazuh-manager`, `filebeat` e `wazuh-dashboard` active/enabled.
+- [x] cluster indexer green e zero shard non assegnati.
+- [x] dashboard HTTPS raggiungibile.
+- [x] snapshot `WAZUH-READY` creato a VM spenta.
+- [ ] rimuovere la NIC NAT temporanea.
+- [ ] verificare egress deny e servizi dopo isolamento.
+
+### Agent su SINKHOLE-LAB
+
+- [x] Wazuh Agent installato e registrato come `sinkhole-lab`.
+- [x] agent `Active` sul manager.
+- [x] connessione a `10.10.10.40:1514/tcp`.
+- [x] NAT rimossa nuovamente da SINKHOLE-LAB.
+- [x] nessuna default route.
+- [x] comunicazione agent-manager confermata tramite `lab-lan`.
+
+### Ingestione JSONL e regole
+
+- [x] configurato `<localfile>` su `/var/log/tio-sinkhole/requests.jsonl`.
+- [x] formato `json` e label contestuali.
+- [x] validazione `wazuh-logcollector -t` e `wazuh-agentd -t`.
+- [x] logcollector conferma `Analyzing file`.
+- [x] regola padre `100100`.
+- [x] regola `100101` per heartbeat 200.
+- [x] regola `100102` per 404.
+- [x] regola `100103` per 405.
+- [x] validazione con `wazuh-analysisd -t`.
+- [x] test con `wazuh-logtest`.
+- [x] alert verificati nel manager, indexer e dashboard.
+
+Evidenza: [`ENV-2026-05-wazuh-sinkhole-pipeline.md`](../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md).
+
+Configurazioni: [`configs/wazuh`](../../configs/wazuh/README.md).
+
+## Flusso validato
 
 ```text
 client LAB
    |
    | HTTP verso 10.10.10.30:8080
    v
-systemd -> python3 server.py -> risposta 200/404/405
-                              |
-                              v
-                 requests.jsonl, un evento per riga
-                              |
-                              v
-                 logrotate, 14 archivi compressi
+SINKHOLE-LAB -> requests.jsonl -> Wazuh Agent
+                                      |
+                                      | TCP 1514 su lab-lan
+                                      v
+WAZUH-LAB -> Manager -> alerts.json -> Filebeat -> Indexer -> Dashboard
 ```
-
-Il programma apre il file JSONL in modalità append per ogni richiesta e lo chiude subito dopo. Per questo `logrotate` può rinominare il file attivo e crearne uno nuovo senza riavviare il servizio.
 
 ## Step 1 - Hypervisor e VM
 
 - [x] Installare hypervisor con supporto snapshot.
+- [x] Creare SINKHOLE-LAB.
+- [x] Creare WAZUH-LAB.
 - [ ] Creare WIN11-LAB: 2 vCPU, 8 GB RAM, 80 GB.
-- [x] Creare SINKHOLE-LAB: Debian con Python 3.
-- [ ] Creare WAZUH-LAB: 4 vCPU, 8-12 GB RAM.
 - [ ] Creare APPLIANCE-LAB: 2 vCPU, 2-4 GB RAM.
 - [ ] Creare ANALYST-LAB opzionale.
-- [ ] Aggiornare tutti i sistemi e creare snapshot `CLEAN-OS`.
+- [ ] Aggiornare tutte le VM rimanenti e creare snapshot `CLEAN-OS`.
 
 ## Step 2 - Rete
 
 - [x] Creare host-only `10.10.10.0/24`.
-- [ ] Assegnare IP a tutte le VM secondo la topologia.
+- [x] Assegnare IP a SINKHOLE-LAB e WAZUH-LAB.
 - [x] Verificare assenza di bridge verso LAN reale.
-- [x] Usare NAT soltanto per installazione e patching.
-- [x] Disabilitare NAT prima del test su SINKHOLE-LAB.
+- [x] Disabilitare NAT su SINKHOLE-LAB.
 - [x] Applicare egress deny su SINKHOLE-LAB.
-- [x] Usare UTC su SINKHOLE-LAB.
-- [ ] Estendere isolamento, egress deny e UTC a tutte le VM.
+- [x] Usare UTC sui nodi correnti.
+- [ ] Rimuovere NAT da WAZUH-LAB.
+- [ ] Estendere isolamento, egress deny e UTC alle VM rimanenti.
 
 ## Step 3 - Sinkhole HTTP
 
-- [x] Creare applicazione HTTP benigna in `/opt/tio-sinkhole`.
-- [x] Esporre esclusivamente `10.10.10.30:8080`.
-- [x] Implementare endpoint `/heartbeat`.
-- [x] Scrivere log JSONL in `/var/log/tio-sinkhole`.
-- [x] Creare utente di servizio dedicato.
-- [x] Creare unità `systemd` con hardening minimo.
-- [x] Verificare avvio automatico.
-- [x] Verificare che non accetti upload o comandi.
-- [x] Configurare rotazione e retention dei log.
-- [x] Pubblicare script, unità, health check ed evidenza sanificata.
-- [ ] Ripetere il health check dopo rollback da `SINKHOLE-READY`.
-- [ ] Inviare il JSONL a Wazuh.
+- [x] applicazione HTTP benigna;
+- [x] endpoint `/heartbeat`;
+- [x] logging JSONL;
+- [x] utente dedicato e hardening `systemd`;
+- [x] rotazione e retention;
+- [x] health check;
+- [x] invio del JSONL a Wazuh;
+- [ ] ripetere il health check dopo rollback da `SINKHOLE-READY`.
 
 ## Step 4 - Wazuh
 
-Questo è il prossimo passaggio operativo.
-
-- [ ] Creare WAZUH-LAB con 4 vCPU e 8-12 GiB RAM.
-- [ ] Configurare `10.10.10.40/24` sulla rete `lab-lan`.
-- [ ] Installare Wazuh all-in-one usando NAT temporaneo.
-- [ ] Rimuovere NAT dopo installazione e aggiornamento.
-- [ ] Verificare egress deny.
-- [ ] Registrare agent Windows e Linux.
-- [ ] Acquisire il log JSONL del sinkhole.
-- [ ] Verificare parsing dei campi e timestamp UTC.
-- [ ] Definire retention di laboratorio.
+- [x] creare WAZUH-LAB;
+- [x] configurare `10.10.10.40/24`;
+- [x] installare Wazuh all-in-one;
+- [x] registrare agent Linux;
+- [x] acquisire e decodificare il JSONL;
+- [x] validare tre regole tecniche e dashboard;
+- [ ] rimuovere NAT da WAZUH-LAB;
+- [ ] definire retention finale;
+- [ ] registrare agent Windows e appliance;
+- [ ] ripetere la pipeline dopo rollback.
 
 ## Step 5 - Windows telemetry
 
-- [ ] Installare Sysmon e applicare configurazione LAB.
-- [ ] Abilitare Microsoft-Windows-PowerShell/Operational.
-- [ ] Abilitare Script Block Logging 4104.
-- [ ] Abilitare TaskScheduler/Operational.
-- [ ] Abilitare Security 4698/4699.
-- [ ] Configurare Wazuh EventChannel.
+- [ ] installare WIN11-LAB;
+- [ ] installare Sysmon e applicare configurazione LAB;
+- [ ] abilitare PowerShell Operational e Script Block Logging 4104;
+- [ ] abilitare TaskScheduler/Operational;
+- [ ] abilitare Security 4698/4699;
+- [ ] configurare Wazuh EventChannel.
 
-## Step 6 - Linux telemetry
+## Step 6 - Linux appliance telemetry
 
-- [ ] Installare auditd.
-- [ ] Configurare audit rules per execve, systemd e path appliance.
-- [ ] Configurare Wazuh FIM.
-- [ ] Verificare actor, hash e timestamp.
+- [ ] installare APPLIANCE-LAB;
+- [ ] installare auditd;
+- [ ] configurare regole per execve, systemd e path appliance;
+- [ ] configurare Wazuh FIM;
+- [ ] verificare actor, hash e timestamp.
 
 ## Step 7 - Dataset sintetico
 
@@ -164,26 +182,27 @@ Creare esclusivamente dati fittizi:
 - identity events statici;
 - nessuna password, token, wallet o account reale.
 
-## Step 8 - Smoke test
+## Step 8 - Smoke test completo
 
-Generare:
+La pipeline HTTP/JSONL è validata. Restano:
 
-1. process creation;
+1. process creation Windows;
 2. file marker;
-3. richiesta heartbeat;
-4. evento nel dashboard;
+3. richiesta heartbeat dal nodo Windows;
+4. eventi endpoint e rete nel dashboard;
 5. cleanup del marker;
-6. ripetizione dopo rollback.
-
-Il test HTTP del sinkhole è pronto, ma lo smoke test completo resta bloccato finché Wazuh e gli endpoint non sono disponibili.
+6. test negativo;
+7. ripetizione dopo rollback.
 
 ## Step 9 - Snapshot finale
 
-- [x] Creare snapshot applicativo intermedio `SINKHOLE-READY`.
-- [ ] Eseguire checklist baseline end-to-end.
-- [ ] Creare `LOGGING-READY`.
-- [ ] Creare `LOGGING-READY-LINUX`.
-- [ ] Registrare hash delle configurazioni finali.
+- [x] snapshot `SINKHOLE-READY`.
+- [x] snapshot intermedio `WAZUH-READY`.
+- [ ] creare un nuovo snapshot WAZUH dopo isolamento e verifica della configurazione corrente.
+- [ ] eseguire checklist baseline end-to-end.
+- [ ] creare `LOGGING-READY`.
+- [ ] creare `LOGGING-READY-LINUX`.
+- [ ] registrare hash delle configurazioni finali.
 
 ## Definition of Done
 
@@ -192,7 +211,7 @@ La fase ambiente sarà `VALIDATED` quando:
 - tutte le VM principali sono create e isolate;
 - ogni agent è online;
 - i campi chiave sono visibili;
-- sinkhole e Wazuh ricevono l'evento;
+- sinkhole, endpoint e appliance inviano telemetria;
 - il test è ripetibile dopo rollback;
 - le raw evidence restano private;
 - cleanup e controllo baseline risultano completi.
