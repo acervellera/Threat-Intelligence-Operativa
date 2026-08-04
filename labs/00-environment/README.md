@@ -2,8 +2,8 @@
 
 **Stato:** IN PROGRESS  
 **Fase primaria:** STEP-02 — Rete e VM  
-**Ultimo checkpoint:** `ENV-2026-05 — pipeline Wazuh ↔ sinkhole`  
-**Prossimo checkpoint:** isolamento finale di WAZUH-LAB, poi WIN11-LAB
+**Ultimo checkpoint:** `ENV-2026-05 — pipeline Wazuh ↔ sinkhole isolata`  
+**Prossimo checkpoint:** `WIN11-LAB` su `10.10.10.20`
 
 ## Obiettivo
 
@@ -20,8 +20,8 @@ Arrivare a una baseline ripetibile da cui iniziano tutti i casi, mantenendo sepa
 |---|---|---|---|
 | Host Ubuntu / `lab-lan` | `10.10.10.1` | VALIDATED | n/a |
 | WIN11-LAB | `10.10.10.20` | NEXT | - |
-| SINKHOLE-LAB | `10.10.10.30` | SINKHOLE-READY, agent Active | `CLEAN-OS`, `SINKHOLE-READY` |
-| WAZUH-LAB | `10.10.10.40` | PIPELINE VALIDATED, NAT temporanea | `CLEAN-OS`, `WAZUH-READY` |
+| SINKHOLE-LAB | `10.10.10.30` | SINKHOLE-READY, agent Active, isolata | `CLEAN-OS`, `SINKHOLE-READY` |
+| WAZUH-LAB | `10.10.10.40` | WAZUH-PIPELINE-READY, isolata | `CLEAN-OS`, `WAZUH-READY`, `WAZUH-PIPELINE-READY` |
 | APPLIANCE-LAB | `10.10.10.50` | NOT STARTED | - |
 | ANALYST-LAB | `10.10.10.60` | OPTIONAL | - |
 
@@ -51,7 +51,7 @@ Evidenza: [`ENV-2026-03-sinkhole-baseline.md`](../../evidence/sanitized/ENV-2026
 
 Evidenza: [`ENV-2026-04-sinkhole-ready.md`](../../evidence/sanitized/ENV-2026-04-sinkhole-ready.md).
 
-## Checkpoint ENV-2026-05 — Pipeline Wazuh ↔ sinkhole
+## Checkpoint ENV-2026-05 — Pipeline Wazuh ↔ sinkhole isolata
 
 ### WAZUH-LAB
 
@@ -66,8 +66,12 @@ Evidenza: [`ENV-2026-04-sinkhole-ready.md`](../../evidence/sanitized/ENV-2026-04
 - [x] cluster indexer green e zero shard non assegnati.
 - [x] dashboard HTTPS raggiungibile.
 - [x] snapshot `WAZUH-READY` creato a VM spenta.
-- [ ] rimuovere la NIC NAT temporanea.
-- [ ] verificare egress deny e servizi dopo isolamento.
+- [x] NIC NAT rimossa dalla configurazione persistente.
+- [x] assenza di default route e indirizzo NAT dopo il riavvio.
+- [x] egress Internet negato come previsto.
+- [x] servizi Wazuh e dashboard verificati dopo isolamento.
+- [x] snapshot `WAZUH-PIPELINE-READY` creato a VM spenta.
+- [x] nuovo riavvio con servizi e agent ancora attivi.
 
 ### Agent su SINKHOLE-LAB
 
@@ -76,7 +80,7 @@ Evidenza: [`ENV-2026-04-sinkhole-ready.md`](../../evidence/sanitized/ENV-2026-04
 - [x] connessione a `10.10.10.40:1514/tcp`.
 - [x] NAT rimossa nuovamente da SINKHOLE-LAB.
 - [x] nessuna default route.
-- [x] comunicazione agent-manager confermata tramite `lab-lan`.
+- [x] comunicazione agent-manager confermata tramite `lab-lan` prima e dopo l'isolamento Wazuh.
 
 ### Ingestione JSONL e regole
 
@@ -91,6 +95,7 @@ Evidenza: [`ENV-2026-04-sinkhole-ready.md`](../../evidence/sanitized/ENV-2026-04
 - [x] validazione con `wazuh-analysisd -t`.
 - [x] test con `wazuh-logtest`.
 - [x] alert verificati nel manager, indexer e dashboard.
+- [x] test reale 200/404/405 ripetuto con WAZUH-LAB senza NAT.
 
 Evidenza: [`ENV-2026-05-wazuh-sinkhole-pipeline.md`](../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md).
 
@@ -110,6 +115,8 @@ SINKHOLE-LAB -> requests.jsonl -> Wazuh Agent
 WAZUH-LAB -> Manager -> alerts.json -> Filebeat -> Indexer -> Dashboard
 ```
 
+Entrambe le VM operative della pipeline sono prive di NAT e default route.
+
 ## Step 1 - Hypervisor e VM
 
 - [x] Installare hypervisor con supporto snapshot.
@@ -127,8 +134,10 @@ WAZUH-LAB -> Manager -> alerts.json -> Filebeat -> Indexer -> Dashboard
 - [x] Verificare assenza di bridge verso LAN reale.
 - [x] Disabilitare NAT su SINKHOLE-LAB.
 - [x] Applicare egress deny su SINKHOLE-LAB.
+- [x] Disabilitare NAT su WAZUH-LAB.
+- [x] Applicare egress deny su WAZUH-LAB.
 - [x] Usare UTC sui nodi correnti.
-- [ ] Rimuovere NAT da WAZUH-LAB.
+- [ ] Configurare una sorgente NTP interna.
 - [ ] Estendere isolamento, egress deny e UTC alle VM rimanenti.
 
 ## Step 3 - Sinkhole HTTP
@@ -150,7 +159,8 @@ WAZUH-LAB -> Manager -> alerts.json -> Filebeat -> Indexer -> Dashboard
 - [x] registrare agent Linux;
 - [x] acquisire e decodificare il JSONL;
 - [x] validare tre regole tecniche e dashboard;
-- [ ] rimuovere NAT da WAZUH-LAB;
+- [x] rimuovere NAT da WAZUH-LAB;
+- [x] verificare la pipeline isolata e creare `WAZUH-PIPELINE-READY`;
 - [ ] definire retention finale;
 - [ ] registrare agent Windows e appliance;
 - [ ] ripetere la pipeline dopo rollback.
@@ -184,22 +194,22 @@ Creare esclusivamente dati fittizi:
 
 ## Step 8 - Smoke test completo
 
-La pipeline HTTP/JSONL è validata. Restano:
+La pipeline HTTP/JSONL isolata è validata. Restano:
 
 1. process creation Windows;
 2. file marker;
 3. richiesta heartbeat dal nodo Windows;
 4. eventi endpoint e rete nel dashboard;
 5. cleanup del marker;
-6. test negativo;
+6. test negativi;
 7. ripetizione dopo rollback.
 
 ## Step 9 - Snapshot finale
 
 - [x] snapshot `SINKHOLE-READY`.
 - [x] snapshot intermedio `WAZUH-READY`.
-- [ ] creare un nuovo snapshot WAZUH dopo isolamento e verifica della configurazione corrente.
-- [ ] eseguire checklist baseline end-to-end.
+- [x] snapshot `WAZUH-PIPELINE-READY` dopo isolamento e verifica della configurazione corrente.
+- [ ] eseguire checklist baseline multi-sorgente end-to-end.
 - [ ] creare `LOGGING-READY`.
 - [ ] creare `LOGGING-READY-LINUX`.
 - [ ] registrare hash delle configurazioni finali.
