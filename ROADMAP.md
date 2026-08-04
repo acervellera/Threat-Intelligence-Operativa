@@ -8,9 +8,9 @@ La roadmap segue una dipendenza rigida: una fase si chiude solo quando la relati
 |---|---|---|---|
 | Fase 0 - Governance | IN PROGRESS | storage privato e `.gitignore` verificati | completare publication checklist di prova |
 | Fase 1 - Metodo analitico | NOT STARTED | - | compilare scheda A/B/C |
-| Fase 2 - Topologia e rete | IN PROGRESS | `ENV-2026-03`, `ENV-2026-04` | creare WAZUH-LAB e VM rimanenti |
-| Fase 3 - Raccolta e baseline | IN PROGRESS | sinkhole `SINKHOLE-READY` | installare Wazuh e acquisire JSONL |
-| Fase 4 - Detection engineering | NOT STARTED | - | attendere telemetria Wazuh |
+| Fase 2 - Topologia e rete | IN PROGRESS | `ENV-2026-03`, `ENV-2026-04`, `ENV-2026-05` | isolare WAZUH-LAB e creare WIN11-LAB |
+| Fase 3 - Raccolta e baseline | IN PROGRESS | pipeline Linux/JSONL validata | aggiungere telemetria Windows e appliance |
+| Fase 4 - Detection engineering | IN PROGRESS | regole sinkhole 100101-100103 | completare test negativi, metriche e rollback |
 | Fasi 5-10 - Campagne | BLOCKED | - | attendere `LOGGING-READY` |
 | Fase 11 - Audit finale | NOT STARTED | - | attendere completamento casi |
 | Fase 12 - Portfolio | NOT STARTED | - | attendere evidenze complete |
@@ -23,29 +23,37 @@ Pubblicato il `2026-08-03 UTC`.
 
 - KVM/QEMU e libvirt operativi;
 - rete host-only `lab-lan` su `10.10.10.0/24`;
-- assenza di forwarding verso LAN reale o Internet;
-- `SINKHOLE-LAB` configurata su `10.10.10.30/24`;
-- NAT rimosso dopo installazione e patching;
-- SSH e strumenti minimi installati;
-- snapshot `CLEAN-OS` creato a VM spenta;
+- SINKHOLE-LAB su `10.10.10.30/24` senza NAT e senza default route;
+- snapshot `CLEAN-OS`;
 - report: `evidence/sanitized/ENV-2026-03-sinkhole-baseline.md`.
 
 ### ENV-2026-04 — SINKHOLE-READY
 
 Pubblicato il `2026-08-03 UTC`.
 
-- servizio HTTP attivo e abilitato all'avvio;
-- listener limitato a `10.10.10.30:8080`;
-- `GET/HEAD /heartbeat` validato;
-- percorso inesistente con HTTP 404;
-- POST rifiutato con HTTP 405;
-- processo non-root `tio-sinkhole`;
-- logging JSONL valido;
-- rotazione giornaliera, retention 14 e compressione;
-- health check automatico: 16 controlli superati, 0 falliti;
-- test dall'host LAB con codici 200/404/405;
-- snapshot interno `SINKHOLE-READY`, figlio di `CLEAN-OS`;
+- servizio HTTP su `10.10.10.30:8080`;
+- test 200/404/405;
+- processo non-root;
+- JSONL e logrotate;
+- health check 16 PASS / 0 FAIL;
+- snapshot `SINKHOLE-READY`;
 - report: `evidence/sanitized/ENV-2026-04-sinkhole-ready.md`.
+
+### ENV-2026-05 — Pipeline Wazuh ↔ sinkhole
+
+Pubblicato il `2026-08-04 UTC`.
+
+- WAZUH-LAB su Ubuntu Server 24.04 LTS e `10.10.10.40/24`;
+- manager, indexer, dashboard e Filebeat attivi;
+- cluster indexer green;
+- snapshot `CLEAN-OS` e `WAZUH-READY`;
+- agent `sinkhole-lab` Active tramite `lab-lan`;
+- SINKHOLE-LAB nuovamente priva di NAT e default route;
+- ingestione di `/var/log/tio-sinkhole/requests.jsonl`;
+- parsing JSON e label contestuali;
+- regole custom 100101, 100102 e 100103 validate;
+- alert 200/404/405 verificati fino al dashboard;
+- report: `evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`.
 
 ## Fase 0 - Governance del repository
 
@@ -73,60 +81,50 @@ Pubblicato il `2026-08-03 UTC`.
 - [x] Creare rete host-only `10.10.10.0/24`.
 - [x] Verificare assenza di bridge verso LAN reale.
 - [x] Preparare SINKHOLE-LAB `10.10.10.30`.
-- [x] Rimuovere il NAT da SINKHOLE-LAB dopo il patching.
+- [x] Rimuovere il NAT da SINKHOLE-LAB dopo patching e installazione agent.
 - [x] Verificare egress deny su SINKHOLE-LAB.
-- [x] Creare snapshot `CLEAN-OS` di SINKHOLE-LAB.
-- [x] Creare snapshot applicativo `SINKHOLE-READY`.
+- [x] Creare snapshot `CLEAN-OS` e `SINKHOLE-READY` di SINKHOLE-LAB.
+- [x] Preparare WAZUH-LAB `10.10.10.40`.
+- [x] Creare snapshot `CLEAN-OS` e `WAZUH-READY` di WAZUH-LAB.
 
 ### Da completare
 
-- [ ] Preparare WAZUH-LAB `10.10.10.40`.
+- [ ] Rimuovere la NIC NAT temporanea da WAZUH-LAB.
+- [ ] Verificare egress deny e servizi Wazuh dopo isolamento e riavvio.
 - [ ] Preparare WIN11-LAB `10.10.10.20`.
 - [ ] Preparare APPLIANCE-LAB `10.10.10.50`.
 - [ ] Preparare ANALYST-LAB `10.10.10.60` opzionale.
 - [ ] Applicare isolamento ed egress deny a tutte le VM.
-- [ ] Creare snapshot `CLEAN-OS` per tutte le VM principali.
+- [ ] Creare snapshot `CLEAN-OS` per le VM rimanenti.
 - [ ] Documentare la topologia completa con configurazioni sanificate e hash.
 
 **Gate:** tutti i nodi principali sono isolati, ripristinabili e raggiungibili soltanto nella rete LAB.
 
 ## Fase 3 - Raccolta e baseline
 
-### Componente sinkhole completata
+### Componente sinkhole e pipeline Linux completate
 
 - [x] Implementare il sinkhole HTTP su `10.10.10.30:8080`.
-- [x] Esporre esclusivamente l'endpoint benigno `/heartbeat`.
-- [x] Consentire soltanto GET e HEAD.
-- [x] Rifiutare POST, PUT, PATCH e DELETE con HTTP 405.
 - [x] Registrare le richieste in formato JSONL.
-- [x] Gestire il processo tramite utente dedicato e servizio `systemd`.
-- [x] Applicare hardening minimo con `systemd`.
-- [x] Configurare `logrotate` giornaliero con retention di 14 archivi.
-- [x] Validare test positivo 200 e test negativi 404/405.
-- [x] Validare richieste dall'host `10.10.10.1`.
-- [x] Pubblicare servizio, unità, policy logrotate e health check sanificati.
+- [x] Configurare servizio non-root, hardening e logrotate.
+- [x] Validare test 200/404/405.
+- [x] Installare Wazuh all-in-one.
+- [x] Registrare l'agent Linux `sinkhole-lab`.
+- [x] Acquisire `/var/log/tio-sinkhole/requests.jsonl`.
+- [x] Verificare parsing dei campi JSON e label.
+- [x] Verificare manager, Filebeat, indexer e dashboard.
 
-### Prossimo checkpoint — WAZUH-LAB
+### Telemetria completa da completare
 
-- [ ] Creare WAZUH-LAB con 4 vCPU e 8-12 GiB RAM.
-- [ ] Usare NAT soltanto per installazione e aggiornamento.
-- [ ] Configurare IP statico `10.10.10.40/24` senza gateway LAB.
-- [ ] Installare Wazuh all-in-one.
-- [ ] Rimuovere la scheda NAT e verificare egress deny.
-- [ ] Definire retention adatta al laboratorio.
-- [ ] Acquisire `/var/log/tio-sinkhole/requests.jsonl`.
-- [ ] Verificare parsing dei campi JSON.
-
-### Telemetria completa
-
-- [ ] Registrare agent Windows e Linux.
+- [ ] Definire retention finale di laboratorio.
+- [ ] Registrare agent Windows e appliance Linux.
 - [ ] Installare e testare Sysmon.
 - [ ] Abilitare PowerShell Script Block Logging.
 - [ ] Abilitare Task Scheduler Operational e auditing 4698/4699.
 - [ ] Configurare auditd e FIM sull'appliance.
 - [ ] Creare dataset sintetico.
 - [ ] Verificare `/heartbeat` da WIN11-LAB.
-- [ ] Eseguire smoke test end-to-end.
+- [ ] Eseguire smoke test multi-sorgente end-to-end.
 - [ ] Ripetere il test dopo rollback.
 - [ ] Creare snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
@@ -134,13 +132,25 @@ Pubblicato il `2026-08-03 UTC`.
 
 ## Fase 4 - Nucleo detection engineering
 
-- [ ] Salvare evento raw del test positivo nello storage privato.
-- [ ] Scrivere regola su campi stabili.
-- [ ] Testare con `wazuh-logtest`.
-- [ ] Eseguire almeno due test negativi.
-- [ ] Misurare latency, coverage, precision, data quality, repeatability e cleanup completeness.
+### Completato per il checkpoint tecnico sinkhole
 
-**Gate:** detection ripetibile e contestualizzata.
+- [x] Scrivere regola padre per JSON provenienti da `requests.jsonl`.
+- [x] Validare heartbeat 200 con regola `100101`.
+- [x] Validare 404 con regola `100102`.
+- [x] Validare 405 con regola `100103`.
+- [x] Testare sintassi con `wazuh-analysisd -t`.
+- [x] Testare eventi campione con `wazuh-logtest`.
+- [x] Verificare gli alert nella pipeline reale e nel dashboard.
+
+### Da completare
+
+- [ ] Salvare evento raw del test positivo nello storage privato con manifest.
+- [ ] Eseguire almeno due test negativi formali.
+- [ ] Aggiungere tuning per frequenza e contesto.
+- [ ] Misurare latency, coverage, precision, data quality e repeatability.
+- [ ] Ripetere dopo rollback e verificare cleanup.
+
+**Gate:** detection ripetibile, contestualizzata e misurata.
 
 ## Fasi 5-10 - Campagne
 
@@ -175,7 +185,7 @@ Il piano temporale è indicativo: i gate tecnici hanno precedenza sulle date.
 
 | Giorni | Attività | Deliverable | Stato |
 |---|---|---|---|
-| 1-3 | Rete, sinkhole, Wazuh, Sysmon, logging e snapshot | Health check + smoke test | IN PROGRESS; sinkhole ready |
+| 1-3 | Rete, sinkhole, Wazuh, Sysmon, logging e snapshot | Health check + smoke test | IN PROGRESS; pipeline Linux/JSONL validata |
 | 4-6 | CaptiveCrunch | Timeline + finding | BLOCKED |
 | 7-10 | ACR Chain A/B | Process tree + tuning notes | BLOCKED |
 | 11-14 | UNC1069 | Manifest analysis + IR scope | BLOCKED |
