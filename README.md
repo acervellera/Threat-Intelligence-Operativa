@@ -8,8 +8,9 @@ Percorso pubblico e progressivo per trasformare fonti di threat intelligence in 
 
 **Fase primaria attiva:** `STEP-02 — Rete e VM`  
 **Attività parallele:** `STEP-03 — Baseline telemetria` e `STEP-04 — Smoke test`  
-**Checkpoint più recente:** `ENV-2026-05 — pipeline Wazuh ↔ sinkhole`  
+**Checkpoint più recente:** `ENV-2026-05 — pipeline Wazuh ↔ sinkhole isolata`  
 **Pipeline Linux/JSONL:** `VALIDATED`  
+**Snapshot Wazuh corrente:** `WAZUH-PIPELINE-READY`  
 **Snapshot finale LOGGING-READY:** `NOT READY`  
 **Data:** `2026-08-04 UTC`
 
@@ -27,19 +28,22 @@ Completato e verificato:
 - filesystem root WAZUH-LAB esteso a circa 77 GiB;
 - Wazuh manager, indexer, dashboard e Filebeat attivi e abilitati;
 - cluster indexer `green`, un nodo, zero shard non assegnati;
-- snapshot WAZUH-LAB `CLEAN-OS` e `WAZUH-READY`;
+- snapshot WAZUH-LAB `CLEAN-OS`, `WAZUH-READY` e `WAZUH-PIPELINE-READY`;
 - Wazuh Agent installato su SINKHOLE-LAB e collegato tramite `lab-lan`;
-- NAT rimosso da SINKHOLE-LAB dopo l'installazione dell'agent;
+- NAT rimossa da SINKHOLE-LAB dopo l'installazione dell'agent;
 - acquisizione di `/var/log/tio-sinkhole/requests.jsonl` tramite `wazuh-logcollector`;
 - parsing JSON e label `@source=tio-sinkhole`, `lab.role=sinkhole`;
 - regole custom validate per heartbeat 200, risposta 404 e risposta 405;
+- NAT rimossa anche da WAZUH-LAB;
+- assenza di default route e indirizzo NAT sui due nodi;
+- servizi Wazuh, agent e pipeline 200/404/405 verificati dopo isolamento e riavvio;
 - alert verificati nel manager, nell'indexer e nel Threat Hunting del dashboard.
 
 Riferimenti:
 
 - [baseline isolata CLEAN-OS del sinkhole](evidence/sanitized/ENV-2026-03-sinkhole-baseline.md);
 - [checkpoint SINKHOLE-READY](evidence/sanitized/ENV-2026-04-sinkhole-ready.md);
-- [pipeline Wazuh ↔ sinkhole](evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md);
+- [pipeline Wazuh ↔ sinkhole isolata](evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md);
 - [configurazione sanificata della rete](configs/libvirt/lab-lan.sanitized.xml);
 - [servizio sinkhole e guida di installazione](configs/sinkhole/README.md);
 - [configurazioni Wazuh validate](configs/wazuh/README.md);
@@ -50,7 +54,7 @@ Riferimenti:
 - Issue `#3 — Costruire rete host-only e macchine virtuali`;
 - Issue `#5 — Dataset sintetico, sinkhole e snapshot LOGGING-READY`.
 
-**Prossimo checkpoint operativo:** rimuovere la NAT temporanea da `WAZUH-LAB`, verificare egress deny e funzionamento della pipeline in isolamento; successivamente creare `WIN11-LAB` su `10.10.10.20`.
+**Prossimo checkpoint operativo:** creare `WIN11-LAB` su `10.10.10.20`, installare l'agent Wazuh e preparare Sysmon, PowerShell logging e auditing Windows.
 
 ## Obiettivo
 
@@ -82,7 +86,7 @@ Ogni caso deve produrre:
 | 0 | Governance e sicurezza | [`docs/00-governance`](docs/00-governance/README.md) | Regole PUBLIC/SANITIZED/PRIVATE | IN PROGRESS |
 | 1 | Metodo analitico | [`docs/01-method`](docs/01-method/README.md) | Scheda A/B/C e catena neutra | NOT STARTED |
 | 2 | Costruzione ambiente | [`labs/00-environment`](labs/00-environment/README.md) | Topologia, snapshot e health check | IN PROGRESS |
-| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | Sinkhole, Sysmon, PowerShell, auditd e Wazuh | IN PROGRESS; pipeline Linux/JSONL validata |
+| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | Sinkhole, Sysmon, PowerShell, auditd e Wazuh | IN PROGRESS; pipeline Linux/JSONL isolata validata |
 | 4 | Detection engineering | [`docs/04-detection-engineering`](docs/04-detection-engineering/README.md) | Matrice TP/TN, tuning e metriche | IN PROGRESS; prime regole tecniche validate |
 | 5-10 | Sei campagne | [`labs`](labs/README.md) | Un caso completo per campagna | BLOCKED |
 | 11 | Reporting | [`docs/05-reporting`](docs/05-reporting/README.md) | Finding, IR report e timeline UTC | NOT STARTED |
@@ -96,8 +100,8 @@ Il piano operativo completo è in [`ROADMAP.md`](ROADMAP.md). Lo stato di avanza
 |---|---|---|---|
 | Host Ubuntu / bridge libvirt | `10.10.10.1` | Gestione locale della rete LAB | VALIDATED |
 | WIN11-LAB | `10.10.10.20` | Sysmon, PowerShell logging, Wazuh agent | NEXT |
-| SINKHOLE-LAB | `10.10.10.30` | HTTP interno, heartbeat e log JSONL | SINKHOLE-READY; agent Active |
-| WAZUH-LAB | `10.10.10.40` | Manager, indexer e dashboard | PIPELINE VALIDATED; NAT temporanea presente |
+| SINKHOLE-LAB | `10.10.10.30` | HTTP interno, heartbeat e log JSONL | SINKHOLE-READY; agent Active; isolata |
+| WAZUH-LAB | `10.10.10.40` | Manager, indexer e dashboard | WAZUH-PIPELINE-READY; isolata |
 | APPLIANCE-LAB | `10.10.10.50` | auditd, FIM e BRICKSTORM | NOT STARTED |
 | ANALYST-LAB | `10.10.10.60` | Analisi e reporting, opzionale | NOT STARTED |
 
@@ -109,9 +113,9 @@ La rete LAB è priva di forwarding. Le interfacce NAT sono ammesse solo durante 
 |---|---|---|
 | `ENV-2026-03` | `CLEAN-OS` SINKHOLE-LAB | PASS |
 | `ENV-2026-04` | `SINKHOLE-READY` | PASS |
-| `ENV-2026-05` | pipeline Wazuh Agent → Manager → Indexer → Dashboard | PASS parziale; non è LOGGING-READY |
+| `ENV-2026-05` | `WAZUH-PIPELINE-READY`, pipeline Wazuh Agent → Manager → Indexer → Dashboard isolata | PASS parziale; non è LOGGING-READY |
 
-Gli snapshot interni QCOW2 non sostituiscono un backup indipendente. Lo snapshot `WAZUH-READY` è precedente alla configurazione finale della pipeline JSONL e delle regole custom.
+Gli snapshot interni QCOW2 non sostituiscono un backup indipendente.
 
 ## Regola di pubblicazione
 
@@ -148,7 +152,7 @@ Le evidenze raw restano fuori dal repository in uno storage privato. La cartella
 - `BLOCKED`: attività intenzionalmente non eseguibile finché un gate precedente non è completato.
 - `VALIDATED`: Definition of Done della fase completata con verifiche ripetibili.
 - `SANITIZED`: copia pubblica revisionata per privacy e sicurezza.
-- `PUBLISHED`: caso completo pubblicato con hash, fonti e limiti dichiarati.
+- `PUBLISHED`: caso completo pubblicato con evidenze, hash, fonti e limiti dichiarati.
 
 ## Metodo di lavoro per ogni caso
 
