@@ -1,13 +1,13 @@
-# ENV-2026-05 — Pipeline Wazuh ↔ sinkhole
+# ENV-2026-05 — Pipeline Wazuh ↔ sinkhole isolata
 
 **Classificazione:** SANITIZED  
 **Data:** 2026-08-04 UTC  
 **Fasi:** STEP-02, STEP-03 e STEP-04 parziale  
-**Esito:** PASS per la pipeline Linux/JSONL; `LOGGING-READY` non ancora raggiunto
+**Esito:** PASS per la pipeline Linux/JSONL isolata; `LOGGING-READY` non ancora raggiunto
 
 ## Obiettivo
 
-Validare una prima pipeline di telemetria end-to-end interamente interna alla rete LAB:
+Validare una prima pipeline di telemetria end-to-end interamente interna alla rete LAB e dimostrare che continua a funzionare dopo la rimozione della NAT da entrambi i nodi:
 
 ```text
 richiesta HTTP controllata
@@ -44,7 +44,13 @@ UUID, MAC address, credenziali, password dell'indexer, percorsi dell'host e log 
 - servizi `wazuh-indexer`, `wazuh-manager`, `filebeat` e `wazuh-dashboard` attivi e abilitati;
 - dashboard HTTPS raggiungibile con risposta HTTP 302;
 - indexer con cluster health `green`, un nodo, zero shard non assegnati e 100% shard attivi;
-- snapshot `CLEAN-OS` e `WAZUH-READY` creati a VM spenta.
+- snapshot `CLEAN-OS` e `WAZUH-READY` creati a VM spenta;
+- NIC NAT rimossa dalla configurazione persistente;
+- dopo il riavvio resta soltanto `10.10.10.40/24` su `lab-lan`;
+- default route e indirizzo NAT assenti;
+- raggiungibilità interna verso host LAB e SINKHOLE-LAB confermata;
+- accesso a `packages.wazuh.com` fallito come previsto per assenza di DNS/egress;
+- snapshot `WAZUH-PIPELINE-READY` creato a VM spenta dopo la validazione isolata.
 
 ## Registrazione dell'agent sinkhole
 
@@ -58,7 +64,7 @@ Dopo la rimozione della NIC NAT da SINKHOLE-LAB:
 - l'agent si connette a `10.10.10.40:1514/tcp`;
 - heartbeat, inventario e SCA Debian sono stati avviati correttamente.
 
-Questo dimostra che il canale agent-manager non dipende dalla rete NAT.
+Dopo l'isolamento e il riavvio di WAZUH-LAB, l'agent è rimasto `Active`. Questo dimostra che il canale agent-manager non dipende dalla rete NAT.
 
 ## Raccolta JSONL
 
@@ -96,15 +102,15 @@ I controlli eseguiti hanno incluso:
 - riavvio controllato del manager;
 - verifica dei servizi dopo il riavvio.
 
-## Test end-to-end
+## Test end-to-end isolato
 
-Sono state generate tre richieste benigne dalla rete LAB:
+Dopo la rimozione della NAT da WAZUH-LAB sono state generate tre richieste benigne dalla rete LAB:
 
 | Test | Metodo e path | Risposta | Alert atteso |
 |---|---|---:|---:|
 | heartbeat | `GET /heartbeat` | 200 | `100101` |
-| percorso inesistente | `GET /tio-live-not-found` | 404 | `100102` |
-| metodo non consentito | `POST /tio-live-post` | 405 | `100103` |
+| percorso inesistente | `GET /tio-isolated-not-found` | 404 | `100102` |
+| metodo non consentito | `POST /tio-isolated-post` | 405 | `100103` |
 
 I tre eventi sono stati:
 
@@ -122,17 +128,31 @@ Query DQL utilizzata nel campo Search del Threat Hunting:
 rule.id:100101 or rule.id:100102 or rule.id:100103
 ```
 
+## Stato temporale
+
+Le VM usano UTC per la timeline. Dopo la rimozione della NAT, `systemd-timesyncd` resta attivo ma non risulta sincronizzato con un server esterno. L'ora UTC osservata era coerente con l'ora locale dell'host, considerando il fuso estivo UTC+2. Una sorgente NTP interna resta da configurare.
+
+## Snapshot
+
+| Snapshot | Significato |
+|---|---|
+| `CLEAN-OS` | Ubuntu pulito prima dell'installazione Wazuh |
+| `WAZUH-READY` | Wazuh all-in-one installato e validato prima dell'integrazione finale |
+| `WAZUH-PIPELINE-READY` | NAT rimossa, agent Active, JSONL acquisito, regole 100101-100103 e pipeline isolata validate |
+
+Gli snapshot sono checkpoint interni dell'ambiente virtuale e non sostituiscono un backup indipendente.
+
 ## Limiti e attività residue
 
 Questo checkpoint non equivale a `LOGGING-READY`:
 
-- la NIC NAT di WAZUH-LAB è ancora temporaneamente presente;
-- lo snapshot `WAZUH-READY` precede la configurazione finale di ingestione e delle regole;
 - WIN11-LAB, Sysmon, PowerShell logging e auditing Windows non sono ancora disponibili;
 - APPLIANCE-LAB, auditd e FIM non sono ancora disponibili;
 - dataset sintetico e smoke test multi-sorgente non sono ancora completati;
-- manca la ripetizione della pipeline dopo rollback;
-- mancano test negativi e misurazione formale delle metriche di detection.
+- manca la ripetizione della pipeline dopo ripristino dello snapshot;
+- mancano test negativi formali e misurazione delle metriche di detection;
+- manca una sorgente NTP interna per i nodi senza egress;
+- la retention finale del laboratorio non è ancora definita.
 
 ## Artefatti pubblici collegati
 
