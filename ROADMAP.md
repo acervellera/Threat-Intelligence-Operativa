@@ -8,8 +8,8 @@ La roadmap segue una dipendenza rigida: una fase si chiude solo quando la relati
 |---|---|---|---|
 | Fase 0 - Governance | IN PROGRESS | storage privato e `.gitignore` verificati | completare publication checklist di prova |
 | Fase 1 - Metodo analitico | NOT STARTED | - | compilare scheda A/B/C |
-| Fase 2 - Topologia e rete | IN PROGRESS | `ENV-2026-03`, `ENV-2026-04`, `ENV-2026-05` | isolare WAZUH-LAB e creare WIN11-LAB |
-| Fase 3 - Raccolta e baseline | IN PROGRESS | pipeline Linux/JSONL validata | aggiungere telemetria Windows e appliance |
+| Fase 2 - Topologia e rete | IN PROGRESS | `ENV-2026-03`, `ENV-2026-04`, `ENV-2026-05` | creare WIN11-LAB |
+| Fase 3 - Raccolta e baseline | IN PROGRESS | pipeline Linux/JSONL isolata validata | aggiungere telemetria Windows e appliance |
 | Fase 4 - Detection engineering | IN PROGRESS | regole sinkhole 100101-100103 | completare test negativi, metriche e rollback |
 | Fasi 5-10 - Campagne | BLOCKED | - | attendere `LOGGING-READY` |
 | Fase 11 - Audit finale | NOT STARTED | - | attendere completamento casi |
@@ -39,7 +39,7 @@ Pubblicato il `2026-08-03 UTC`.
 - snapshot `SINKHOLE-READY`;
 - report: `evidence/sanitized/ENV-2026-04-sinkhole-ready.md`.
 
-### ENV-2026-05 — Pipeline Wazuh ↔ sinkhole
+### ENV-2026-05 — Pipeline Wazuh ↔ sinkhole isolata
 
 Pubblicato il `2026-08-04 UTC`.
 
@@ -48,11 +48,13 @@ Pubblicato il `2026-08-04 UTC`.
 - cluster indexer green;
 - snapshot `CLEAN-OS` e `WAZUH-READY`;
 - agent `sinkhole-lab` Active tramite `lab-lan`;
-- SINKHOLE-LAB nuovamente priva di NAT e default route;
 - ingestione di `/var/log/tio-sinkhole/requests.jsonl`;
 - parsing JSON e label contestuali;
 - regole custom 100101, 100102 e 100103 validate;
-- alert 200/404/405 verificati fino al dashboard;
+- NAT rimossa da SINKHOLE-LAB e WAZUH-LAB;
+- assenza di default route sui due nodi;
+- servizi, agent e alert 200/404/405 verificati dopo isolamento e riavvio;
+- snapshot `WAZUH-PIPELINE-READY` creato a VM spenta;
 - report: `evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`.
 
 ## Fase 0 - Governance del repository
@@ -86,17 +88,19 @@ Pubblicato il `2026-08-04 UTC`.
 - [x] Creare snapshot `CLEAN-OS` e `SINKHOLE-READY` di SINKHOLE-LAB.
 - [x] Preparare WAZUH-LAB `10.10.10.40`.
 - [x] Creare snapshot `CLEAN-OS` e `WAZUH-READY` di WAZUH-LAB.
+- [x] Rimuovere la NIC NAT da WAZUH-LAB.
+- [x] Verificare egress deny e servizi Wazuh dopo isolamento e riavvio.
+- [x] Creare snapshot `WAZUH-PIPELINE-READY`.
 
 ### Da completare
 
-- [ ] Rimuovere la NIC NAT temporanea da WAZUH-LAB.
-- [ ] Verificare egress deny e servizi Wazuh dopo isolamento e riavvio.
 - [ ] Preparare WIN11-LAB `10.10.10.20`.
 - [ ] Preparare APPLIANCE-LAB `10.10.10.50`.
 - [ ] Preparare ANALYST-LAB `10.10.10.60` opzionale.
-- [ ] Applicare isolamento ed egress deny a tutte le VM.
+- [ ] Applicare isolamento ed egress deny alle VM rimanenti.
 - [ ] Creare snapshot `CLEAN-OS` per le VM rimanenti.
 - [ ] Documentare la topologia completa con configurazioni sanificate e hash.
+- [ ] Configurare una sorgente temporale interna per le VM senza egress.
 
 **Gate:** tutti i nodi principali sono isolati, ripristinabili e raggiungibili soltanto nella rete LAB.
 
@@ -113,6 +117,7 @@ Pubblicato il `2026-08-04 UTC`.
 - [x] Acquisire `/var/log/tio-sinkhole/requests.jsonl`.
 - [x] Verificare parsing dei campi JSON e label.
 - [x] Verificare manager, Filebeat, indexer e dashboard.
+- [x] Ripetere il test reale dopo la rimozione della NAT da WAZUH-LAB.
 
 ### Telemetria completa da completare
 
@@ -141,6 +146,7 @@ Pubblicato il `2026-08-04 UTC`.
 - [x] Testare sintassi con `wazuh-analysisd -t`.
 - [x] Testare eventi campione con `wazuh-logtest`.
 - [x] Verificare gli alert nella pipeline reale e nel dashboard.
+- [x] Verificare le stesse regole con la pipeline senza egress.
 
 ### Da completare
 
@@ -185,7 +191,7 @@ Il piano temporale è indicativo: i gate tecnici hanno precedenza sulle date.
 
 | Giorni | Attività | Deliverable | Stato |
 |---|---|---|---|
-| 1-3 | Rete, sinkhole, Wazuh, Sysmon, logging e snapshot | Health check + smoke test | IN PROGRESS; pipeline Linux/JSONL validata |
+| 1-3 | Rete, sinkhole, Wazuh, Sysmon, logging e snapshot | Health check + smoke test | IN PROGRESS; pipeline Linux/JSONL isolata validata |
 | 4-6 | CaptiveCrunch | Timeline + finding | BLOCKED |
 | 7-10 | ACR Chain A/B | Process tree + tuning notes | BLOCKED |
 | 11-14 | UNC1069 | Manifest analysis + IR scope | BLOCKED |
