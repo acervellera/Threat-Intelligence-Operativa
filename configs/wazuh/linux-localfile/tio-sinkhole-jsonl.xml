@@ -1,0 +1,21 @@
+<!--
+  Threat Intelligence Operativa
+  Wazuh Agent: raccolta del log JSONL prodotto da SINKHOLE-LAB.
+
+  Ambiente validato:
+    - Debian 13
+    - Wazuh Agent 4.14.7
+    - sorgente /var/log/tio-sinkhole/requests.jsonl
+
+  Inserire il blocco in /var/ossec/etc/ossec.conf sull'agent Linux,
+  validare con wazuh-logcollector -t e riavviare wazuh-agent.
+-->
+<ossec_config>
+  <localfile>
+    <location>/var/log/tio-sinkhole/requests.jsonl</location>
+    <log_format>json</log_format>
+
+    <label key="@source">tio-sinkhole</label>
+    <label key="lab.role">sinkhole</label>
+  </localfile>
+</ossec_config>
