@@ -7,42 +7,50 @@ Percorso pubblico e progressivo per trasformare fonti di threat intelligence in 
 ## Stato corrente
 
 **Fase primaria attiva:** `STEP-02 — Rete e VM`  
-**Stato STEP-02:** `IN PROGRESS`  
-**Checkpoint più recente:** `ENV-2026-04 — SINKHOLE-READY`  
-**Baseline telemetria:** `IN PROGRESS`, sorgente JSONL sinkhole pronta  
-**Smoke test STEP-04:** `IN PROGRESS`, limitatamente ai test HTTP del sinkhole  
-**Data:** `2026-08-03 UTC`
+**Attività parallele:** `STEP-03 — Baseline telemetria` e `STEP-04 — Smoke test`  
+**Checkpoint più recente:** `ENV-2026-05 — pipeline Wazuh ↔ sinkhole`  
+**Pipeline Linux/JSONL:** `VALIDATED`  
+**Snapshot finale LOGGING-READY:** `NOT READY`  
+**Data:** `2026-08-04 UTC`
 
 Completato e verificato:
 
 - hypervisor KVM/QEMU con libvirt;
 - rete host-only `lab-lan` su `10.10.10.0/24`, senza forwarding;
 - `SINKHOLE-LAB` su Debian 13 con IP statico `10.10.10.30/24`;
-- NAT usato soltanto per installazione e patching, poi rimosso;
-- assenza di default route e accesso Internet dopo l'isolamento;
-- SSH, Python 3, `curl`, `jq`, QEMU Guest Agent e SPICE Guest Agent;
-- snapshot `CLEAN-OS` creato a VM spenta;
 - servizio HTTP `tio-sinkhole` su `10.10.10.30:8080`;
-- endpoint benigno `GET/HEAD /heartbeat`;
-- test HTTP `200`, `404` e `405` da VM e host LAB;
-- processo eseguito come utente non privilegiato `tio-sinkhole`;
-- logging JSONL e rotazione giornaliera con retention di 14 archivi;
-- health check automatico: `16 PASS`, `0 FAIL`;
-- snapshot interno `SINKHOLE-READY`, figlio di `CLEAN-OS`.
+- endpoint benigno `GET/HEAD /heartbeat` e test HTTP 200/404/405;
+- logging JSONL, rotazione giornaliera e retention di 14 archivi;
+- health check sinkhole: `16 PASS`, `0 FAIL`;
+- snapshot sinkhole `CLEAN-OS` e `SINKHOLE-READY`;
+- `WAZUH-LAB` su Ubuntu Server 24.04 LTS, IP `10.10.10.40/24`;
+- filesystem root WAZUH-LAB esteso a circa 77 GiB;
+- Wazuh manager, indexer, dashboard e Filebeat attivi e abilitati;
+- cluster indexer `green`, un nodo, zero shard non assegnati;
+- snapshot WAZUH-LAB `CLEAN-OS` e `WAZUH-READY`;
+- Wazuh Agent installato su SINKHOLE-LAB e collegato tramite `lab-lan`;
+- NAT rimosso da SINKHOLE-LAB dopo l'installazione dell'agent;
+- acquisizione di `/var/log/tio-sinkhole/requests.jsonl` tramite `wazuh-logcollector`;
+- parsing JSON e label `@source=tio-sinkhole`, `lab.role=sinkhole`;
+- regole custom validate per heartbeat 200, risposta 404 e risposta 405;
+- alert verificati nel manager, nell'indexer e nel Threat Hunting del dashboard.
 
 Riferimenti:
 
-- [baseline isolata CLEAN-OS](evidence/sanitized/ENV-2026-03-sinkhole-baseline.md);
+- [baseline isolata CLEAN-OS del sinkhole](evidence/sanitized/ENV-2026-03-sinkhole-baseline.md);
 - [checkpoint SINKHOLE-READY](evidence/sanitized/ENV-2026-04-sinkhole-ready.md);
+- [pipeline Wazuh ↔ sinkhole](evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md);
 - [configurazione sanificata della rete](configs/libvirt/lab-lan.sanitized.xml);
 - [servizio sinkhole e guida di installazione](configs/sinkhole/README.md);
+- [configurazioni Wazuh validate](configs/wazuh/README.md);
 - [baseline di telemetria](docs/03-telemetry-baseline/README.md);
+- [detection engineering](docs/04-detection-engineering/README.md);
 - [stato complessivo](PROGRESS.md);
 - [roadmap aggiornata](ROADMAP.md);
 - Issue `#3 — Costruire rete host-only e macchine virtuali`;
 - Issue `#5 — Dataset sintetico, sinkhole e snapshot LOGGING-READY`.
 
-**Prossimo checkpoint operativo:** creare `WAZUH-LAB` su `10.10.10.40`, applicare lo stesso modello NAT-temporaneo/isolamento e preparare la raccolta del log JSONL del sinkhole.
+**Prossimo checkpoint operativo:** rimuovere la NAT temporanea da `WAZUH-LAB`, verificare egress deny e funzionamento della pipeline in isolamento; successivamente creare `WIN11-LAB` su `10.10.10.20`.
 
 ## Obiettivo
 
@@ -74,8 +82,8 @@ Ogni caso deve produrre:
 | 0 | Governance e sicurezza | [`docs/00-governance`](docs/00-governance/README.md) | Regole PUBLIC/SANITIZED/PRIVATE | IN PROGRESS |
 | 1 | Metodo analitico | [`docs/01-method`](docs/01-method/README.md) | Scheda A/B/C e catena neutra | NOT STARTED |
 | 2 | Costruzione ambiente | [`labs/00-environment`](labs/00-environment/README.md) | Topologia, snapshot e health check | IN PROGRESS |
-| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | Sinkhole, Sysmon, PowerShell, auditd e Wazuh | IN PROGRESS, sinkhole source ready |
-| 4 | Detection engineering | [`docs/04-detection-engineering`](docs/04-detection-engineering/README.md) | Matrice TP/TN, tuning e metriche | NOT STARTED |
+| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | Sinkhole, Sysmon, PowerShell, auditd e Wazuh | IN PROGRESS; pipeline Linux/JSONL validata |
+| 4 | Detection engineering | [`docs/04-detection-engineering`](docs/04-detection-engineering/README.md) | Matrice TP/TN, tuning e metriche | IN PROGRESS; prime regole tecniche validate |
 | 5-10 | Sei campagne | [`labs`](labs/README.md) | Un caso completo per campagna | BLOCKED |
 | 11 | Reporting | [`docs/05-reporting`](docs/05-reporting/README.md) | Finding, IR report e timeline UTC | NOT STARTED |
 | 12 | Pubblicazione | [`docs/06-publication`](docs/06-publication/README.md) | Evidenze sanificate e release checklist | NOT STARTED |
@@ -87,22 +95,23 @@ Il piano operativo completo è in [`ROADMAP.md`](ROADMAP.md). Lo stato di avanza
 | Nodo | Indirizzo | Ruolo | Stato |
 |---|---|---|---|
 | Host Ubuntu / bridge libvirt | `10.10.10.1` | Gestione locale della rete LAB | VALIDATED |
-| WIN11-LAB | `10.10.10.20` | Sysmon, PowerShell logging, Wazuh agent | NOT STARTED |
-| SINKHOLE-LAB | `10.10.10.30` | HTTP interno, heartbeat e log JSONL | SINKHOLE-READY |
-| WAZUH-LAB | `10.10.10.40` | Manager, indexer e dashboard | NEXT |
+| WIN11-LAB | `10.10.10.20` | Sysmon, PowerShell logging, Wazuh agent | NEXT |
+| SINKHOLE-LAB | `10.10.10.30` | HTTP interno, heartbeat e log JSONL | SINKHOLE-READY; agent Active |
+| WAZUH-LAB | `10.10.10.40` | Manager, indexer e dashboard | PIPELINE VALIDATED; NAT temporanea presente |
 | APPLIANCE-LAB | `10.10.10.50` | auditd, FIM e BRICKSTORM | NOT STARTED |
 | ANALYST-LAB | `10.10.10.60` | Analisi e reporting, opzionale | NOT STARTED |
 
-La rete LAB è priva di forwarding. Le interfacce NAT sono ammesse solo durante installazione e aggiornamento e devono essere rimosse prima dei test.
+La rete LAB è priva di forwarding. Le interfacce NAT sono ammesse solo durante installazione e aggiornamento e devono essere rimosse prima dei test di campagna.
 
 ## Checkpoint disponibili
 
-| Exercise ID | Snapshot | Ambito | Esito |
-|---|---|---|---|
-| `ENV-2026-03` | `CLEAN-OS` | Debian aggiornato, rete isolata, SSH e runtime | PASS |
-| `ENV-2026-04` | `SINKHOLE-READY` | HTTP, JSONL, logrotate, health check e isolamento | PASS |
+| Exercise ID | Snapshot / ambito | Esito |
+|---|---|---|
+| `ENV-2026-03` | `CLEAN-OS` SINKHOLE-LAB | PASS |
+| `ENV-2026-04` | `SINKHOLE-READY` | PASS |
+| `ENV-2026-05` | pipeline Wazuh Agent → Manager → Indexer → Dashboard | PASS parziale; non è LOGGING-READY |
 
-`SINKHOLE-READY` è uno snapshot interno QCOW2 e non sostituisce un backup indipendente.
+Gli snapshot interni QCOW2 non sostituiscono un backup indipendente. Lo snapshot `WAZUH-READY` è precedente alla configurazione finale della pipeline JSONL e delle regole custom.
 
 ## Regola di pubblicazione
 
