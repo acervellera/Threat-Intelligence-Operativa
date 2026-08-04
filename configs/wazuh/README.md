@@ -8,7 +8,18 @@ Questa directory contiene copie pubbliche e ridotte delle configurazioni validat
 |---|---|---|---|
 | Agent Linux | [`linux-localfile/tio-sinkhole-jsonl.xml`](linux-localfile/tio-sinkhole-jsonl.xml) | VALIDATED | `ENV-2026-05` |
 | Regole manager | [`rules/tio_sinkhole_rules.xml`](rules/tio_sinkhole_rules.xml) | VALIDATED | `ENV-2026-05` |
+| Pipeline isolata | agent → manager → indexer → dashboard | VALIDATED | `WAZUH-PIPELINE-READY` |
 | EventChannel Windows | `windows-eventchannel/` | NOT STARTED | attende WIN11-LAB |
+
+## Ambiente validato
+
+- WAZUH-LAB: Ubuntu Server 24.04 LTS, `10.10.10.40/24`;
+- Wazuh all-in-one 4.14;
+- SINKHOLE-LAB: Debian 13, `10.10.10.30/24`;
+- Wazuh Agent Linux 4.14.7;
+- rete `lab-lan` senza forwarding;
+- SINKHOLE-LAB e WAZUH-LAB senza NAT e senza default route durante il test finale;
+- snapshot Wazuh `WAZUH-PIPELINE-READY`.
 
 ## Agent Linux: JSONL sinkhole
 
@@ -83,6 +94,20 @@ systemctl is-active wazuh-manager
 systemctl is-active filebeat
 ```
 
+## Test isolato validato
+
+Dopo la rimozione della NAT da WAZUH-LAB sono stati ricontrollati:
+
+- assenza di default route e indirizzo NAT;
+- connettività verso host LAB e SINKHOLE-LAB;
+- egress Internet negato;
+- manager, indexer, Filebeat e dashboard attivi;
+- cluster indexer green;
+- agent `sinkhole-lab` Active;
+- alert reali 200, 404 e 405;
+- riavvio completo;
+- snapshot `WAZUH-PIPELINE-READY` creato a VM spenta.
+
 ## Query dashboard
 
 Nel campo **Search** del Threat Hunting usare:
@@ -111,7 +136,8 @@ Manager:
 
 - Le tre regole dimostrano la pipeline e non costituiscono ancora un rule pack di produzione.
 - Un singolo 404 o 405 non dimostra attività malevola.
-- Mancano test negativi formali, tuning per frequenza e ripetizione dopo rollback.
-- `LOGGING-READY` richiede ancora endpoint Windows, Sysmon, PowerShell, auditing e smoke test completo.
+- Mancano test negativi formali, tuning per frequenza, metriche e ripetizione dopo rollback.
+- Senza egress il servizio NTP esterno non è raggiungibile; serve una sorgente temporale interna.
+- `LOGGING-READY` richiede ancora endpoint Windows, Sysmon, PowerShell, auditing, appliance e smoke test completo.
 
 Evidenza collegata: [`../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`](../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md).
