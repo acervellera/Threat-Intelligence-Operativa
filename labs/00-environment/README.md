@@ -1,9 +1,9 @@
-# 00 - Costruzione e validazione dell'ambiente
+# 00 — Costruzione e validazione dell'ambiente
 
-**Stato:** IN PROGRESS  
-**Fase primaria:** STEP-02 — Rete e VM  
-**Ultimo checkpoint:** `ENV-2026-05 — pipeline Wazuh ↔ sinkhole isolata`  
-**Prossimo checkpoint:** `WIN11-LAB` su `10.10.10.20`
+**Stato:** `IN PROGRESS`  
+**Fase primaria:** `STEP-02 — Rete e VM`  
+**Ultimo checkpoint:** `ENV-2026-06 — telemetria multi-sorgente isolata`  
+**Prossimo checkpoint:** `APPLIANCE-LAB` su `10.10.10.50`
 
 ## Obiettivo
 
@@ -18,163 +18,172 @@ Arrivare a una baseline ripetibile da cui iniziano tutti i casi, mantenendo sepa
 
 | Nodo | IP | Stato | Snapshot |
 |---|---|---|---|
-| Host Ubuntu / `lab-lan` | `10.10.10.1` | VALIDATED | n/a |
-| WIN11-LAB | `10.10.10.20` | NEXT | - |
-| SINKHOLE-LAB | `10.10.10.30` | SINKHOLE-READY, agent Active, isolata | `CLEAN-OS`, `SINKHOLE-READY` |
-| WAZUH-LAB | `10.10.10.40` | WAZUH-PIPELINE-READY, isolata | `CLEAN-OS`, `WAZUH-READY`, `WAZUH-PIPELINE-READY` |
+| Host Ubuntu / `lab-lan` | `10.10.10.1` | bridge e NTP interno VALIDATED | n/a |
+| WIN11-LAB | `10.10.10.20` | isolata, agent Active, telemetria Windows validata | `CLEAN-OS`, `WIN11-TELEMETRY-READY` |
+| SINKHOLE-LAB | `10.10.10.30` | isolata, HTTP/JSONL e agent validati | `CLEAN-OS`, `SINKHOLE-READY`, `SINKHOLE-TELEMETRY-READY` |
+| WAZUH-LAB | `10.10.10.40` | isolata, pipeline multi-sorgente validata | `CLEAN-OS`, `WAZUH-READY`, `WAZUH-PIPELINE-READY`, `WAZUH-TELEMETRY-READY` |
 | APPLIANCE-LAB | `10.10.10.50` | NOT STARTED | - |
 | ANALYST-LAB | `10.10.10.60` | OPTIONAL | - |
 
-## Checkpoint ENV-2026-03 — CLEAN-OS sinkhole
+## Checkpoint verificati
 
-- [x] Debian 13 amd64 aggiornato.
-- [x] Hostname `sinkhole-lab` e dominio `lab.internal`.
-- [x] IP statico `10.10.10.30/24`.
-- [x] Collegamento finale esclusivamente a `lab-lan`.
-- [x] Nessuna default route e nessun accesso Internet.
-- [x] SSH e strumenti minimi.
-- [x] Snapshot `CLEAN-OS` creato a VM spenta.
+### ENV-2026-03 — CLEAN-OS sinkhole
+
+- Debian 13 aggiornato;
+- IP statico `10.10.10.30/24`;
+- nessuna default route e nessun accesso Internet;
+- snapshot `CLEAN-OS`.
 
 Evidenza: [`ENV-2026-03-sinkhole-baseline.md`](../../evidence/sanitized/ENV-2026-03-sinkhole-baseline.md).
 
-## Checkpoint ENV-2026-04 — SINKHOLE-READY
+### ENV-2026-04 — SINKHOLE-READY
 
-- [x] servizio `systemd` non-root;
-- [x] listener esclusivo su `10.10.10.30:8080`;
-- [x] endpoint `GET/HEAD /heartbeat`;
-- [x] test HTTP 200, 404 e 405;
-- [x] log JSONL con campi strutturati;
-- [x] logrotate giornaliero, 14 archivi e compressione;
-- [x] health check 16 PASS / 0 FAIL;
-- [x] isolamento senza default route;
-- [x] snapshot `SINKHOLE-READY`.
+- servizio `systemd` non-root;
+- listener su `10.10.10.30:8080`;
+- endpoint `/heartbeat`;
+- test HTTP 200, 404 e 405;
+- JSONL, logrotate e health check 16 PASS / 0 FAIL;
+- snapshot `SINKHOLE-READY`.
 
 Evidenza: [`ENV-2026-04-sinkhole-ready.md`](../../evidence/sanitized/ENV-2026-04-sinkhole-ready.md).
 
-## Checkpoint ENV-2026-05 — Pipeline Wazuh ↔ sinkhole isolata
+### ENV-2026-05 — Pipeline Wazuh ↔ sinkhole isolata
 
-### WAZUH-LAB
-
-- [x] Ubuntu Server 24.04 LTS.
-- [x] 4 vCPU e circa 8 GiB RAM.
-- [x] IP statico `10.10.10.40/24` su `lab-lan`.
-- [x] FQDN `wazuh-lab.lab.internal` e UTC.
-- [x] filesystem LVM root esteso a circa 77 GiB.
-- [x] snapshot `CLEAN-OS` prima dell'installazione Wazuh.
-- [x] Wazuh all-in-one installato.
-- [x] `wazuh-indexer`, `wazuh-manager`, `filebeat` e `wazuh-dashboard` active/enabled.
-- [x] cluster indexer green e zero shard non assegnati.
-- [x] dashboard HTTPS raggiungibile.
-- [x] snapshot `WAZUH-READY` creato a VM spenta.
-- [x] NIC NAT rimossa dalla configurazione persistente.
-- [x] assenza di default route e indirizzo NAT dopo il riavvio.
-- [x] egress Internet negato come previsto.
-- [x] servizi Wazuh e dashboard verificati dopo isolamento.
-- [x] snapshot `WAZUH-PIPELINE-READY` creato a VM spenta.
-- [x] nuovo riavvio con servizi e agent ancora attivi.
-
-### Agent su SINKHOLE-LAB
-
-- [x] Wazuh Agent installato e registrato come `sinkhole-lab`.
-- [x] agent `Active` sul manager.
-- [x] connessione a `10.10.10.40:1514/tcp`.
-- [x] NAT rimossa nuovamente da SINKHOLE-LAB.
-- [x] nessuna default route.
-- [x] comunicazione agent-manager confermata tramite `lab-lan` prima e dopo l'isolamento Wazuh.
-
-### Ingestione JSONL e regole
-
-- [x] configurato `<localfile>` su `/var/log/tio-sinkhole/requests.jsonl`.
-- [x] formato `json` e label contestuali.
-- [x] validazione `wazuh-logcollector -t` e `wazuh-agentd -t`.
-- [x] logcollector conferma `Analyzing file`.
-- [x] regola padre `100100`.
-- [x] regola `100101` per heartbeat 200.
-- [x] regola `100102` per 404.
-- [x] regola `100103` per 405.
-- [x] validazione con `wazuh-analysisd -t`.
-- [x] test con `wazuh-logtest`.
-- [x] alert verificati nel manager, indexer e dashboard.
-- [x] test reale 200/404/405 ripetuto con WAZUH-LAB senza NAT.
+- WAZUH-LAB su Ubuntu Server 24.04 LTS;
+- manager, indexer, dashboard e Filebeat attivi;
+- cluster indexer green;
+- agent `sinkhole-lab` Active;
+- ingestione del JSONL;
+- regole `100100`–`100103` validate;
+- NAT rimossa da SINKHOLE-LAB e WAZUH-LAB;
+- pipeline verificata dopo isolamento e riavvio;
+- snapshot `WAZUH-PIPELINE-READY`.
 
 Evidenza: [`ENV-2026-05-wazuh-sinkhole-pipeline.md`](../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md).
 
-Configurazioni: [`configs/wazuh`](../../configs/wazuh/README.md).
+### ENV-2026-06 — Telemetria multi-sorgente isolata
+
+#### WIN11-LAB
+
+- Windows 11 Pro su `10.10.10.20/24`;
+- account amministrativo `labadmin` e account standard `labuser`;
+- Wazuh Agent Active come agent `002`;
+- Sysmon Operational acquisito;
+- PowerShell Operational e Script Block Logging 4104;
+- Task Scheduler Operational;
+- auditing Security 4698/4699;
+- dataset sintetico con manifesto SHA-256;
+- test positivo e negativo Sysmon FileCreate;
+- task come SYSTEM correlata con Sysmon;
+- NIC NAT rimossa e zero default route;
+- snapshot `WIN11-TELEMETRY-READY`.
+
+#### NTP interno
+
+- host Ubuntu con `chronyd`;
+- listener NTP su `10.10.10.1:123/udp`;
+- subnet autorizzata `10.10.10.0/24`;
+- client `.20`, `.30` e `.40` osservati;
+- timestamp UTC coerenti.
+
+#### Smoke test NAT-less
+
+- Sysmon Event ID `1`, rule `92004`;
+- PowerShell Event ID `4104`, rule `109910`;
+- Task Scheduler Event ID `106`, rule `67014`;
+- Security Event ID `4698`, rule `60228`;
+- Task Scheduler Event ID `141`, rule `67015`;
+- richiesta WIN11-LAB → sinkhole `/final-natless-check`, HTTP 404, rule `100102`;
+- alert verificati in CLI e Threat Hunting;
+- cleanup completato.
+
+#### Snapshot e pacchetti privati
+
+- `WIN11-TELEMETRY-READY`;
+- `WAZUH-TELEMETRY-READY`;
+- `SINKHOLE-TELEMETRY-READY`;
+- manifesti SHA-256 e metadati XML verificati e conservati privatamente.
+
+Evidenza: [`ENV-2026-06-multisource-telemetry-ready.md`](../../evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md).
 
 ## Flusso validato
 
 ```text
-client LAB
-   |
-   | HTTP verso 10.10.10.30:8080
-   v
-SINKHOLE-LAB -> requests.jsonl -> Wazuh Agent
-                                      |
-                                      | TCP 1514 su lab-lan
-                                      v
+WIN11-LAB
+  | Sysmon / PowerShell / Task Scheduler / Security
+  | Wazuh Agent TCP 1514
+  v
 WAZUH-LAB -> Manager -> alerts.json -> Filebeat -> Indexer -> Dashboard
+  ^
+  | Wazuh Agent TCP 1514
+  |
+SINKHOLE-LAB -> requests.jsonl
+  ^
+  | HTTP 8080
+  |
+WIN11-LAB
 ```
 
-Entrambe le VM operative della pipeline sono prive di NAT e default route.
+I tre nodi operativi usano esclusivamente `lab-lan` durante il checkpoint finale.
 
-## Step 1 - Hypervisor e VM
+## Step 1 — Hypervisor e VM
 
 - [x] Installare hypervisor con supporto snapshot.
 - [x] Creare SINKHOLE-LAB.
 - [x] Creare WAZUH-LAB.
-- [ ] Creare WIN11-LAB: 2 vCPU, 8 GB RAM, 80 GB.
-- [ ] Creare APPLIANCE-LAB: 2 vCPU, 2-4 GB RAM.
+- [x] Creare WIN11-LAB.
+- [ ] Creare APPLIANCE-LAB.
 - [ ] Creare ANALYST-LAB opzionale.
-- [ ] Aggiornare tutte le VM rimanenti e creare snapshot `CLEAN-OS`.
 
-## Step 2 - Rete
+## Step 2 — Rete e tempo
 
 - [x] Creare host-only `10.10.10.0/24`.
-- [x] Assegnare IP a SINKHOLE-LAB e WAZUH-LAB.
 - [x] Verificare assenza di bridge verso LAN reale.
-- [x] Disabilitare NAT su SINKHOLE-LAB.
-- [x] Applicare egress deny su SINKHOLE-LAB.
-- [x] Disabilitare NAT su WAZUH-LAB.
-- [x] Applicare egress deny su WAZUH-LAB.
-- [x] Usare UTC sui nodi correnti.
-- [ ] Configurare una sorgente NTP interna.
-- [ ] Estendere isolamento, egress deny e UTC alle VM rimanenti.
+- [x] Rimuovere NAT da SINKHOLE-LAB.
+- [x] Rimuovere NAT da WAZUH-LAB.
+- [x] Rimuovere NAT-TEMP da WIN11-LAB.
+- [x] Verificare zero default route sui tre nodi.
+- [x] Configurare NTP interno su `10.10.10.1`.
+- [x] Verificare client NTP `.20`, `.30`, `.40`.
+- [ ] Estendere isolamento e NTP ad APPLIANCE-LAB.
 
-## Step 3 - Sinkhole HTTP
+## Step 3 — Sinkhole HTTP
 
 - [x] applicazione HTTP benigna;
 - [x] endpoint `/heartbeat`;
 - [x] logging JSONL;
 - [x] utente dedicato e hardening `systemd`;
-- [x] rotazione e retention;
+- [x] rotazione e retention corrente;
 - [x] health check;
 - [x] invio del JSONL a Wazuh;
-- [ ] ripetere il health check dopo rollback da `SINKHOLE-READY`.
+- [x] snapshot `SINKHOLE-TELEMETRY-READY`;
+- [ ] ripetere il health check dopo rollback.
 
-## Step 4 - Wazuh
+## Step 4 — Wazuh
 
-- [x] creare WAZUH-LAB;
-- [x] configurare `10.10.10.40/24`;
 - [x] installare Wazuh all-in-one;
-- [x] registrare agent Linux;
-- [x] acquisire e decodificare il JSONL;
-- [x] validare tre regole tecniche e dashboard;
-- [x] rimuovere NAT da WAZUH-LAB;
-- [x] verificare la pipeline isolata e creare `WAZUH-PIPELINE-READY`;
+- [x] registrare agent Linux e Windows;
+- [x] acquisire JSONL ed EventChannel Windows;
+- [x] validare regole sinkhole e marker Windows;
+- [x] verificare dashboard e pipeline senza egress;
+- [x] snapshot `WAZUH-TELEMETRY-READY`;
 - [ ] definire retention finale;
-- [ ] registrare agent Windows e appliance;
+- [ ] registrare agent appliance;
 - [ ] ripetere la pipeline dopo rollback.
 
-## Step 5 - Windows telemetry
+## Step 5 — Windows telemetry
 
-- [ ] installare WIN11-LAB;
-- [ ] installare Sysmon e applicare configurazione LAB;
-- [ ] abilitare PowerShell Operational e Script Block Logging 4104;
-- [ ] abilitare TaskScheduler/Operational;
-- [ ] abilitare Security 4698/4699;
-- [ ] configurare Wazuh EventChannel.
+- [x] installare WIN11-LAB;
+- [x] installare Sysmon e applicare configurazione LAB;
+- [x] abilitare PowerShell Operational e Script Block Logging 4104;
+- [x] abilitare TaskScheduler/Operational;
+- [x] abilitare Security 4698/4699;
+- [x] configurare Wazuh EventChannel;
+- [x] creare dataset sintetico e verificarne il manifesto;
+- [x] eseguire test positivo e negativo FileCreate;
+- [x] creare snapshot `WIN11-TELEMETRY-READY`.
 
-## Step 6 - Linux appliance telemetry
+## Step 6 — Linux appliance telemetry
 
 - [ ] installare APPLIANCE-LAB;
 - [ ] installare auditd;
@@ -182,37 +191,33 @@ Entrambe le VM operative della pipeline sono prive di NAT e default route.
 - [ ] configurare Wazuh FIM;
 - [ ] verificare actor, hash e timestamp.
 
-## Step 7 - Dataset sintetico
+## Step 7 — Smoke test completo
 
-Creare esclusivamente dati fittizi:
+Completato per Windows + sinkhole + Wazuh:
 
-- documenti legali e professionali;
-- copie browser sintetiche;
-- wallet inventory fittizio;
-- identity events statici;
-- nessuna password, token, wallet o account reale.
+- [x] process creation Windows;
+- [x] file marker;
+- [x] richiesta di rete dal nodo Windows;
+- [x] eventi endpoint e rete nel dashboard;
+- [x] cleanup del marker e delle task;
+- [x] test negativo selettivo Sysmon;
 
-## Step 8 - Smoke test completo
+Restano:
 
-La pipeline HTTP/JSONL isolata è validata. Restano:
+- [ ] telemetria appliance auditd/FIM;
+- [ ] matrice formale TP/TN completa;
+- [ ] metriche;
+- [ ] ripetizione completa dopo rollback.
 
-1. process creation Windows;
-2. file marker;
-3. richiesta heartbeat dal nodo Windows;
-4. eventi endpoint e rete nel dashboard;
-5. cleanup del marker;
-6. test negativi;
-7. ripetizione dopo rollback.
+## Step 8 — Snapshot finali
 
-## Step 9 - Snapshot finale
-
-- [x] snapshot `SINKHOLE-READY`.
-- [x] snapshot intermedio `WAZUH-READY`.
-- [x] snapshot `WAZUH-PIPELINE-READY` dopo isolamento e verifica della configurazione corrente.
-- [ ] eseguire checklist baseline multi-sorgente end-to-end.
-- [ ] creare `LOGGING-READY`.
-- [ ] creare `LOGGING-READY-LINUX`.
-- [ ] registrare hash delle configurazioni finali.
+- [x] `SINKHOLE-READY`;
+- [x] `WAZUH-PIPELINE-READY`;
+- [x] `WIN11-TELEMETRY-READY`;
+- [x] `WAZUH-TELEMETRY-READY`;
+- [x] `SINKHOLE-TELEMETRY-READY`;
+- [ ] `LOGGING-READY`;
+- [ ] `LOGGING-READY-LINUX`.
 
 ## Definition of Done
 
@@ -225,3 +230,5 @@ La fase ambiente sarà `VALIDATED` quando:
 - il test è ripetibile dopo rollback;
 - le raw evidence restano private;
 - cleanup e controllo baseline risultano completi.
+
+`ENV-2026-06` completa il checkpoint dei tre nodi principali già installati, ma non chiude la fase finché APPLIANCE-LAB resta assente.
