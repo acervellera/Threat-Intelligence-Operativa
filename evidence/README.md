@@ -2,23 +2,23 @@
 
 Questa cartella ospita esclusivamente copie `SANITIZED` o documentazione `PUBLIC`. Le acquisizioni raw, gli output completi e i metadati locali restano nello storage privato esterno al repository.
 
-## Stato corrente
-
-Checkpoint pubblicati:
+## Checkpoint pubblicati
 
 | Exercise ID | Fase | Evidenza | Esito | Data UTC |
 |---|---|---|---|---|
 | `ENV-2026-03` | STEP-02 | [`sanitized/ENV-2026-03-sinkhole-baseline.md`](sanitized/ENV-2026-03-sinkhole-baseline.md) | PASS | 2026-08-03 |
 | `ENV-2026-04` | STEP-04 parziale | [`sanitized/ENV-2026-04-sinkhole-ready.md`](sanitized/ENV-2026-04-sinkhole-ready.md) | PASS | 2026-08-03 |
 | `ENV-2026-05` | STEP-03/04 parziale | [`sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`](sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md) | PASS | 2026-08-04 |
+| `ENV-2026-06` | STEP-02/03/04 parziale | [`sanitized/ENV-2026-06-multisource-telemetry-ready.md`](sanitized/ENV-2026-06-multisource-telemetry-ready.md) | PASS parziale | 2026-08-05 |
 
-`ENV-2026-03` descrive la baseline isolata e lo snapshot `CLEAN-OS` di SINKHOLE-LAB.
+## Ambito dei checkpoint
 
-`ENV-2026-04` descrive il servizio HTTP benigno, i test 200/404/405, il log JSONL, la rotazione, il health check automatico e lo snapshot `SINKHOLE-READY`.
+- `ENV-2026-03`: baseline isolata e snapshot `CLEAN-OS` di SINKHOLE-LAB.
+- `ENV-2026-04`: servizio HTTP benigno, test 200/404/405, JSONL, rotazione, health check e snapshot `SINKHOLE-READY`.
+- `ENV-2026-05`: WAZUH-LAB, agent Linux, acquisizione JSONL, regole `100101`–`100103`, isolamento e snapshot `WAZUH-PIPELINE-READY`.
+- `ENV-2026-06`: WIN11-LAB, Sysmon, PowerShell 4104, Task Scheduler, auditing 4698/4699, dataset sintetico, NTP interno, smoke test NAT-less e snapshot `*-TELEMETRY-READY` dei tre nodi.
 
-`ENV-2026-05` descrive WAZUH-LAB, la registrazione dell'agent Linux, l'acquisizione del JSONL, le regole custom 100101-100103, la rimozione della NAT da entrambi i nodi, la verifica della pipeline isolata e lo snapshot `WAZUH-PIPELINE-READY`.
-
-I documenti escludono UUID, MAC address, percorsi dell'host, immagini disco, ISO, credenziali e log completi.
+`ENV-2026-06` non equivale a `LOGGING-READY`: APPLIANCE-LAB, auditd/FIM, retention finale, metriche e ripetizione completa dopo rollback restano aperti.
 
 ## Convenzione
 
@@ -58,20 +58,16 @@ Ogni artefatto deve dichiarare:
 - riferimento alla configurazione che ha prodotto il test;
 - SHA-256 quando viene pubblicato un file derivato stabile.
 
-## Gestione delle acquisizioni incomplete
+## Gestione delle acquisizioni private
 
-Un'acquisizione non deve essere descritta come completa quando una parte dei comandi non è stata eseguita o registrata.
+Per i checkpoint recenti sono stati usati pacchetti privati con manifesti SHA-256, verificati prima e dopo il trasferimento. Il repository pubblico registra soltanto l'esito e le informazioni necessarie a riprodurre il controllo, non:
 
-Nel checkpoint `ENV-2026-04`, la prima acquisizione privata aggregata non ha catturato due sezioni eseguite via SSH perché `sudo` richiedeva un terminale interattivo. Il documento pubblico dichiara la limitazione e distingue il contenuto acquisito dalle verifiche interattive successive.
-
-Nel checkpoint `ENV-2026-05`:
-
-- la pipeline Linux/JSONL è stata verificata con SINKHOLE-LAB e WAZUH-LAB prive di NAT e default route;
-- i servizi Wazuh e l'agent sono stati ricontrollati dopo riavvio;
-- è stato creato lo snapshot `WAZUH-PIPELINE-READY`;
-- il checkpoint non è descritto come `LOGGING-READY`;
-- test negativi formali, metriche, telemetria Windows/appliance e ripetizione dopo rollback restano da completare;
-- una sorgente NTP interna resta da predisporre.
+- inventari completi di processi, servizi e task;
+- EVTX, PCAP, immagini disco o snapshot;
+- UUID, MAC address o percorsi locali dell'host;
+- credenziali, token, chiavi agent o certificati privati;
+- log completi e archivi raw;
+- hash di archivi privati non distribuiti.
 
 ## Contenuti vietati
 
@@ -90,11 +86,9 @@ Per ogni file pubblico registrare Evidence ID, classificazione, timestamp UTC, S
 
 ## Prossime evidenze pianificate
 
-- baseline `CLEAN-OS` di WIN11-LAB;
-- ingestione Sysmon, PowerShell e Task Scheduler;
-- baseline `CLEAN-OS` di APPLIANCE-LAB;
-- auditd e FIM;
-- smoke test multi-sorgente end-to-end;
-- test negativi e metriche;
+- baseline `CLEAN-OS` e telemetria di APPLIANCE-LAB;
+- auditd e Wazuh FIM;
+- retention finale;
+- matrice TP/TN e metriche;
 - ripetizione dopo rollback;
 - snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
