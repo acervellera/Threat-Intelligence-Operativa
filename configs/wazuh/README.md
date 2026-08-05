@@ -7,19 +7,20 @@ Questa directory contiene copie pubbliche e ridotte delle configurazioni validat
 | Area | File | Stato | Checkpoint |
 |---|---|---|---|
 | Agent Linux | [`linux-localfile/tio-sinkhole-jsonl.xml`](linux-localfile/tio-sinkhole-jsonl.xml) | VALIDATED | `ENV-2026-05` |
-| Regole manager | [`rules/tio_sinkhole_rules.xml`](rules/tio_sinkhole_rules.xml) | VALIDATED | `ENV-2026-05` |
-| Pipeline isolata | agent → manager → indexer → dashboard | VALIDATED | `WAZUH-PIPELINE-READY` |
-| EventChannel Windows | `windows-eventchannel/` | NOT STARTED | attende WIN11-LAB |
+| Regole sinkhole | [`rules/tio_sinkhole_rules.xml`](rules/tio_sinkhole_rules.xml) | VALIDATED | `ENV-2026-05` |
+| EventChannel Windows | [`windows-eventchannel/tio-windows-eventchannels.xml`](windows-eventchannel/tio-windows-eventchannels.xml) | VALIDATED | `ENV-2026-06` |
+| Pipeline Linux/JSONL isolata | agent → manager → indexer → dashboard | VALIDATED | `WAZUH-PIPELINE-READY` |
+| Pipeline multi-sorgente isolata | Windows + sinkhole → Wazuh → dashboard | VALIDATED per checkpoint | `ENV-2026-06` |
 
 ## Ambiente validato
 
 - WAZUH-LAB: Ubuntu Server 24.04 LTS, `10.10.10.40/24`;
-- Wazuh all-in-one 4.14;
+- Wazuh all-in-one 4.14.7;
 - SINKHOLE-LAB: Debian 13, `10.10.10.30/24`;
-- Wazuh Agent Linux 4.14.7;
-- rete `lab-lan` senza forwarding;
-- SINKHOLE-LAB e WAZUH-LAB senza NAT e senza default route durante il test finale;
-- snapshot Wazuh `WAZUH-PIPELINE-READY`.
+- WIN11-LAB: Windows 11 Pro, `10.10.10.20/24`;
+- rete `lab-lan` senza forwarding e senza default route sui nodi operativi;
+- NTP interno tramite host `10.10.10.1`;
+- snapshot `WAZUH-TELEMETRY-READY`, `SINKHOLE-TELEMETRY-READY` e `WIN11-TELEMETRY-READY`.
 
 ## Agent Linux: JSONL sinkhole
 
@@ -49,35 +50,28 @@ systemctl restart wazuh-agent
 systemctl is-active wazuh-agent
 ```
 
-Verifica:
+## Agent Windows: EventChannel
 
-```bash
-grep -F 'requests.jsonl' /var/ossec/logs/ossec.log | tail
-```
+Il frammento `tio-windows-eventchannels.xml` raccoglie soltanto gli eventi futuri dai canali:
 
-Risultato atteso:
+- `Microsoft-Windows-Sysmon/Operational`;
+- `Microsoft-Windows-PowerShell/Operational`;
+- `Microsoft-Windows-TaskScheduler/Operational`.
 
-```text
-Analyzing file: '/var/log/tio-sinkhole/requests.jsonl'
-```
+Procedura applicata nel laboratorio:
 
-## Manager: regole sinkhole
+1. backup di `ossec.conf`;
+2. inserimento dei blocchi `<localfile>` una sola volta;
+3. validazione XML con PowerShell;
+4. riavvio controllato di `wazuhsvc`;
+5. conferma nel log agent delle righe `Analyzing event log`;
+6. verifica degli alert nel manager e in Threat Hunting.
 
-Copiare il file delle regole nel manager:
+I log `Application`, `Security` e `System` erano già acquisiti dall'installazione dell'agent. L'auditing Task Scheduler `4698/4699` è stato abilitato separatamente tramite policy Windows.
 
-```bash
-install -o root -g wazuh -m 0640 \
-  tio_sinkhole_rules.xml \
-  /var/ossec/etc/rules/tio_sinkhole_rules.xml
-```
+## Regole validate
 
-Validare prima di riavviare:
-
-```bash
-/var/ossec/bin/wazuh-analysisd -t
-```
-
-Le regole pubblicate sono:
+### Sinkhole
 
 | ID | Livello | Scopo |
 |---:|---:|---|
@@ -86,39 +80,62 @@ Le regole pubblicate sono:
 | `100102` | 5 | richiesta con risposta HTTP 404 |
 | `100103` | 7 | metodo non consentito con risposta HTTP 405 |
 
-Dopo i test con `wazuh-logtest`:
+### Windows
 
-```bash
-systemctl restart wazuh-manager
-systemctl is-active wazuh-manager
-systemctl is-active filebeat
-```
+| ID | Livello | Scopo |
+|---:|---:|---|
+| `109910` | 5 | marker PowerShell Script Block Logging, Event ID 4104 |
 
-## Test isolato validato
+La regola `109910` è stata validata con `wazuh-analysisd -t` e con un evento reale proveniente da WIN11-LAB. L'XML manager completo resta nello storage privato finché non termina la revisione dedicata del rule pack Windows.
 
-Dopo la rimozione della NAT da WAZUH-LAB sono stati ricontrollati:
+## Test multi-sorgente validato
 
-- assenza di default route e indirizzo NAT;
-- connettività verso host LAB e SINKHOLE-LAB;
-- egress Internet negato;
-- manager, indexer, Filebeat e dashboard attivi;
-- cluster indexer green;
-- agent `sinkhole-lab` Active;
-- alert reali 200, 404 e 405;
-- riavvio completo;
-- snapshot `WAZUH-PIPELINE-READY` creato a VM spenta.
+Dopo la rimozione della NIC NAT da WIN11-LAB sono stati osservati:
+
+- Sysmon Event ID `1`, rule `92004`;
+- PowerShell Event ID `4104`, rule `109910`;
+- Task Scheduler Event ID `106`, rule `67014`;
+- Security Event ID `4698`, rule `60228`;
+- Task Scheduler Event ID `141`, rule `67015`;
+- richiesta dal nodo Windows verso `/final-natless-check`, HTTP 404, rule `100102`.
+
+Gli alert sono stati verificati sia in `alerts.json` sia nel dashboard Wazuh.
 
 ## Query dashboard
 
-Nel campo **Search** del Threat Hunting usare:
+PowerShell marker:
 
 ```text
-rule.id:100101 or rule.id:100102 or rule.id:100103
+agent.id:"002" AND rule.id:"109910"
 ```
 
-La query non deve essere inserita nel selettore **Field** della finestra `Add filter`.
+Task Scheduler:
 
-## Rollback
+```text
+agent.id:"002" AND (rule.id:"67014" OR rule.id:"67015" OR rule.id:"60228")
+```
+
+Sinkhole:
+
+```text
+agent.id:"001" AND data.path:"/final-natless-check"
+```
+
+## Validazione e rollback
+
+Manager:
+
+```bash
+/var/ossec/bin/wazuh-analysisd -t
+systemctl restart wazuh-manager
+```
+
+Agent Windows:
+
+1. ripristinare il backup di `ossec.conf`;
+2. validare l'XML;
+3. riavviare `wazuhsvc`;
+4. verificare `ossec.log` e lo stato Active dell'agent.
 
 Agent Linux:
 
@@ -126,18 +143,14 @@ Agent Linux:
 2. validare con `wazuh-logcollector -t` e `wazuh-agentd -t`;
 3. riavviare `wazuh-agent`.
 
-Manager:
-
-1. rimuovere o ripristinare `/var/ossec/etc/rules/tio_sinkhole_rules.xml`;
-2. validare con `wazuh-analysisd -t`;
-3. riavviare `wazuh-manager`.
-
 ## Limiti
 
-- Le tre regole dimostrano la pipeline e non costituiscono ancora un rule pack di produzione.
-- Un singolo 404 o 405 non dimostra attività malevola.
-- Mancano test negativi formali, tuning per frequenza, metriche e ripetizione dopo rollback.
-- Senza egress il servizio NTP esterno non è raggiungibile; serve una sorgente temporale interna.
-- `LOGGING-READY` richiede ancora endpoint Windows, Sysmon, PowerShell, auditing, appliance e smoke test completo.
+- Le regole pubblicate dimostrano la pipeline e non costituiscono un rule pack di produzione.
+- Un singolo 404, 405 o marker di laboratorio non dimostra attività malevola.
+- Mancano ancora appliance, auditd, FIM, retention finale, matrice TP/TN, metriche e ripetizione completa dopo rollback.
+- `ENV-2026-06` non equivale a `LOGGING-READY`.
 
-Evidenza collegata: [`../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`](../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md).
+Evidenze collegate:
+
+- [`../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`](../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md)
+- [`../../evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`](../../evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md)
