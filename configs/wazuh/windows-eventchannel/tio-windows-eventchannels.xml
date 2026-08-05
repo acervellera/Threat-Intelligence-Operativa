@@ -1,0 +1,28 @@
+<!--
+  TIO — frammenti EventChannel validati su WIN11-LAB.
+
+  Integrare ciascun blocco una sola volta dentro <ossec_config> nel file
+  ossec.conf del Wazuh Agent Windows. Eseguire sempre backup, validazione XML
+  e riavvio controllato del servizio wazuhsvc.
+-->
+
+<!-- Sysmon: processi, rete, file, registro, ADS e DNS secondo la policy Sysmon LAB. -->
+<localfile>
+  <location>Microsoft-Windows-Sysmon/Operational</location>
+  <log_format>eventchannel</log_format>
+  <only-future-events>yes</only-future-events>
+</localfile>
+
+<!-- PowerShell Script Block Logging, incluso Event ID 4104. -->
+<localfile>
+  <location>Microsoft-Windows-PowerShell/Operational</location>
+  <log_format>eventchannel</log_format>
+  <only-future-events>yes</only-future-events>
+</localfile>
+
+<!-- Ciclo operativo delle attività pianificate. -->
+<localfile>
+  <location>Microsoft-Windows-TaskScheduler/Operational</location>
+  <log_format>eventchannel</log_format>
+  <only-future-events>yes</only-future-events>
+</localfile>
