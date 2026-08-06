@@ -2,7 +2,7 @@
 
 Percorso pubblico e progressivo per trasformare fonti di threat intelligence in laboratori difensivi ripetibili, telemetria, detection engineering, evidenze verificabili e reporting professionale.
 
-> Il repository riproduce comportamenti osservabili e post-condizioni, non malware, exploit operativi o furto di credenziali. Tutte le attività devono avvenire in VM isolate, con dati sintetici, snapshot e destinazioni di rete interne.
+> La Track A riproduce comportamenti osservabili e post-condizioni con artefatti benigni e sintetici. Una futura Track B, separata e sacrificabile, potrà confrontare questi risultati con analisi statica e dinamica controllata di campioni reali. Il repository pubblico non ospita malware, exploit operativi, credenziali o materiale contaminato.
 
 ## Stato corrente
 
@@ -11,6 +11,7 @@ Percorso pubblico e progressivo per trasformare fonti di threat intelligence in 
 **Checkpoint più recente:** `ENV-2026-07 — APPLIANCE-LAB telemetry ready`  
 **Quattro nodi principali:** `TELEMETRY-READY per nodo`  
 **Snapshot finale LOGGING-READY:** `NOT READY`  
+**Track B malware analysis:** `PLANNED / BLOCKED`  
 **Data:** `2026-08-06 UTC`
 
 Completato e verificato:
@@ -45,6 +46,7 @@ Riferimenti principali:
 - [configurazioni Wazuh validate](configs/wazuh/README.md);
 - [stato complessivo](PROGRESS.md);
 - [roadmap](ROADMAP.md);
+- [Track B — malware analysis separata](docs/07-malware-analysis-track/README.md);
 - Issue `#3 — Costruire rete host-only e macchine virtuali`;
 - Issue `#5 — Dataset sintetico, sinkhole e snapshot LOGGING-READY`.
 
@@ -63,6 +65,28 @@ I quattro nodi principali dispongono ora di snapshot `*-TELEMETRY-READY`, ma il 
 
 Le campagne rimangono intenzionalmente bloccate fino al superamento di questo gate.
 
+## Ordine operativo approvato
+
+Il progetto segue due track con una dipendenza rigida.
+
+### Track A — emulazione benigna e detection engineering
+
+1. completare retention, matrice TP/TN, metriche e rollback del laboratorio;
+2. raggiungere `LOGGING-READY` e `LOGGING-READY-LINUX`;
+3. completare il primo caso interamente benigno, inclusi detection, evidenze, cleanup, rollback e report;
+4. validare che l'intero metodo sia ripetibile prima di introdurre campioni reali.
+
+### Track B — malware analysis separata
+
+5. costruire una sola volta una sandbox distinta, senza routing verso `lab-lan` o rete reale;
+6. ripetere il primo caso iniziando dall'analisi statica del campione;
+7. eseguire analisi dinamica soltanto quando la valutazione del rischio la rende appropriata;
+8. confrontare fonti, emulazione benigna e comportamento osservato;
+9. aggiornare detection, gap, tuning e report;
+10. applicare lo stesso ciclo a due track ai casi successivi.
+
+La Track B resta `BLOCKED` finché Track A non raggiunge `LOGGING-READY` e il primo caso benigno non viene completato end-to-end. Le due track non devono essere accese contemporaneamente sullo stesso host.
+
 ## Obiettivo
 
 Completare il percorso dall'allestimento del laboratorio fino alla pubblicazione di sei casi documentati:
@@ -74,9 +98,9 @@ Completare il percorso dall'allestimento del laboratorio fino alla pubblicazione
 5. BRICKSTORM — appliance Linux/vSphere
 6. WinRAR CVE-2025-8088 — ADS e Startup persistence
 
-Ogni caso deve produrre brief, timeline, mapping MITRE ATT&CK, runbook, telemetria, evidenze E-001…E-006, detection, test positivo e negativo, cleanup, finding e scheda incident response.
+Ogni caso deve produrre brief, timeline, mapping MITRE ATT&CK, runbook, telemetria, evidenze E-001…E-006, detection, test positivo e negativo, cleanup, finding e scheda incident response. Dopo l'attivazione della Track B deve inoltre produrre un confronto tra comportamento documentato, emulato e osservato.
 
-## Topologia
+## Topologia Track A
 
 | Nodo | Indirizzo | Ruolo | Stato |
 |---|---|---|---|
@@ -87,7 +111,9 @@ Ogni caso deve produrre brief, timeline, mapping MITRE ATT&CK, runbook, telemetr
 | APPLIANCE-LAB | `10.10.10.50` | auditd, FIM Whodata e telemetria Linux | `APPLIANCE-TELEMETRY-READY` |
 | ANALYST-LAB | `10.10.10.60` | analisi e reporting, opzionale | NOT STARTED |
 
-La rete LAB è priva di forwarding. Le interfacce NAT sono ammesse soltanto durante installazione e aggiornamento e devono essere rimosse prima dei test.
+La rete Track A è priva di forwarding. Le interfacce NAT sono ammesse soltanto durante installazione e aggiornamento e devono essere rimosse prima dei test.
+
+La futura Track B userà una subnet differente, un manager Wazuh separato, VM sacrificabili e nessun collegamento verso Track A, Internet o LAN reale.
 
 ## Checkpoint disponibili
 
@@ -110,32 +136,42 @@ Gli snapshot interni QCOW2 non sostituiscono un backup indipendente.
 | 2 | Costruzione ambiente | [`labs/00-environment`](labs/00-environment/README.md) | topologia, snapshot e health check | IN PROGRESS |
 | 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | sinkhole, Windows, auditd, FIM e Wazuh | IN PROGRESS |
 | 4 | Detection engineering | [`docs/04-detection-engineering`](docs/04-detection-engineering/README.md) | matrice TP/TN, tuning e metriche | IN PROGRESS |
-| 5-10 | Sei campagne | [`labs`](labs/README.md) | un caso completo per campagna | BLOCKED |
+| 5-10 | Sei campagne Track A | [`labs`](labs/README.md) | un caso benigno completo per campagna | BLOCKED |
+| B | Malware analysis separata | [`docs/07-malware-analysis-track`](docs/07-malware-analysis-track/README.md) | confronto statico/dinamico controllato | PLANNED / BLOCKED |
 | 11 | Reporting | [`docs/05-reporting`](docs/05-reporting/README.md) | finding, IR report e timeline UTC | NOT STARTED |
 | 12 | Pubblicazione | [`docs/06-publication`](docs/06-publication/README.md) | evidenze sanificate e release checklist | NOT STARTED |
 
 ## Metodo di lavoro per ogni caso
 
-1. Leggere e citare le fonti.
-2. Separare osservato, derivato e ipotizzato.
-3. Definire emulazione sicura, test positivo, test negativo, kill switch e cleanup.
-4. Eseguire da snapshot `LOGGING-READY`.
-5. Raccogliere telemetria e costruire una timeline UTC.
-6. Scrivere e testare la detection.
-7. Eseguire cleanup e verificare la baseline.
-8. Redigere finding e scheda IR.
-9. Sanificare le evidenze.
-10. Pubblicare tramite pull request con checklist completa.
+Prima dell'attivazione della Track B:
+
+1. leggere e citare le fonti;
+2. separare osservato, derivato e ipotizzato;
+3. definire emulazione sicura, test positivo, test negativo, kill switch e cleanup;
+4. eseguire da snapshot `LOGGING-READY`;
+5. raccogliere telemetria e costruire una timeline UTC;
+6. scrivere, testare e misurare la detection;
+7. eseguire cleanup, verificare la baseline e ripetere dopo rollback;
+8. redigere finding, scheda IR e pacchetto sanificato.
+
+Dopo l'attivazione della Track B:
+
+9. svolgere analisi statica del campione in ambiente separato;
+10. decidere caso per caso se la dinamica sia necessaria e proporzionata;
+11. confrontare comportamento documentato, emulato e osservato;
+12. aggiornare detection, gap, tuning e report;
+13. distruggere o ripristinare l'ambiente contaminato;
+14. pubblicare soltanto risultati difensivi e sanificati.
 
 ## Regola di pubblicazione
 
-Il repository contiene soltanto materiale **PUBLIC** o **SANITIZED**. Non caricare mai credenziali, token, dati reali, identificatori dell'host, log completi non revisionati, immagini disco, malware o payload operativi. Le evidenze raw restano nello storage privato; [`evidence`](evidence/README.md) ospita solo copie pubblicabili e ridotte.
+Il repository contiene soltanto materiale **PUBLIC** o **SANITIZED**. Non caricare mai credenziali, token, dati reali, identificatori dell'host, log completi non revisionati, immagini disco, campioni malware, payload, archivi infetti, URL operativi o snapshot contaminati. Le evidenze raw restano nello storage privato; [`evidence`](evidence/README.md) ospita solo copie pubblicabili e ridotte.
 
 ## Struttura
 
 ```text
 .
-├── docs/        metodo, ambiente, telemetria, detection, reporting, pubblicazione
+├── docs/        metodo, ambiente, telemetria, detection, Track B, reporting, pubblicazione
 ├── labs/        percorso ambiente + sei campagne
 ├── templates/   modelli riutilizzabili per ogni caso
 ├── evidence/    sole evidenze sanificate e manifest pubblici
@@ -149,6 +185,7 @@ Il repository contiene soltanto materiale **PUBLIC** o **SANITIZED**. Non carica
 
 - `NOT STARTED`: attività non iniziata.
 - `NEXT`: prossimo componente pianificato.
+- `PLANNED / BLOCKED`: attività definita ma vietata finché i gate precedenti non sono soddisfatti.
 - `IN PROGRESS`: attività avviata; possono esistere checkpoint ed evidenze parziali.
 - `BLOCKED`: attività intenzionalmente non eseguibile finché un gate precedente non è completato.
 - `VALIDATED`: Definition of Done della fase completata con verifiche ripetibili.
