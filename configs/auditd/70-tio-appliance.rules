@@ -1,0 +1,12 @@
+## Threat Intelligence Operativa — APPLIANCE-LAB
+## Regole persistenti limitate ad artefatti sintetici di laboratorio.
+
+## Registra l'esecuzione dello script benigno.
+-w /opt/tio-appliance-lab/bin/tio-marker.sh -p x -k tio_appliance_exec
+
+## Registra modifiche alla unit systemd sintetica.
+-w /etc/systemd/system/tio-appliance-lab-demo.service -p wa -k tio_systemd_changes
+
+## Nota:
+## /opt/tio-appliance-lab/data non usa una seconda watch personalizzata.
+## Il percorso è gestito dalla watch dinamica Wazuh FIM con chiave wazuh_fim.
