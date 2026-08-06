@@ -1,0 +1,4 @@
+# Threat Intelligence Operativa — estensione CDB audit-keys
+# Aggiungere la riga seguente a /var/ossec/etc/lists/audit-keys sul manager.
+
+tio_appliance_exec:execute
