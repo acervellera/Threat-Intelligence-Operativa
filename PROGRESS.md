@@ -8,9 +8,9 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 |---|---|
 | Fase primaria attiva | `STEP-02 — Rete e VM` |
 | Attività parallele | `STEP-03 — Baseline telemetria`, `STEP-04 — Smoke test` |
-| Ultimo checkpoint | `ENV-2026-06 — telemetria multi-sorgente isolata` |
-| Ultimo aggiornamento | `2026-08-05 UTC` |
-| Prossima attività | creare `APPLIANCE-LAB` e configurare auditd/FIM |
+| Ultimo checkpoint | `ENV-2026-07 — APPLIANCE-LAB telemetry ready` |
+| Ultimo aggiornamento | `2026-08-06 UTC` |
+| Prossima attività | retention, matrice TP/TN, metriche e rollback coordinato |
 | Issue topologia | `#3 — Costruire rete host-only e macchine virtuali` |
 | Issue smoke test | `#5 — Dataset sintetico, sinkhole e snapshot LOGGING-READY` |
 
@@ -20,9 +20,9 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 |---|---|---|---|---|
 | STEP-00 | Governance e publication gate | IN PROGRESS | storage privato e `.gitignore` verificati | 2026-08-03 |
 | STEP-01 | Metodo analitico A/B/C | NOT STARTED | - | - |
-| STEP-02 | Rete e VM | IN PROGRESS | `ENV-2026-03`…`ENV-2026-06` | 2026-08-05 |
-| STEP-03 | Wazuh, Sysmon, PowerShell e auditd | IN PROGRESS | pipeline Windows + Linux/JSONL validata; appliance mancante | 2026-08-05 |
-| STEP-04 | Smoke test e snapshot LOGGING-READY | IN PROGRESS | tre snapshot `*-TELEMETRY-READY`; non è `LOGGING-READY` | 2026-08-05 |
+| STEP-02 | Rete e VM | IN PROGRESS | `ENV-2026-03`…`ENV-2026-07`; quattro nodi principali isolati | 2026-08-06 |
+| STEP-03 | Wazuh, Sysmon, PowerShell e auditd | IN PROGRESS | Windows, sinkhole, auditd e FIM Whodata validati | 2026-08-06 |
+| STEP-04 | Smoke test e snapshot LOGGING-READY | IN PROGRESS | quattro snapshot `*-TELEMETRY-READY`; non è `LOGGING-READY` | 2026-08-06 |
 | CASE-01 | CaptiveCrunch / Storm-2945 | BLOCKED | attende `LOGGING-READY` | - |
 | CASE-02A | ACR Stealer Chain A | BLOCKED | attende `LOGGING-READY` | - |
 | CASE-02B | ACR Stealer Chain B | BLOCKED | attende `LOGGING-READY` | - |
@@ -38,9 +38,10 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 | Exercise ID | Fase | Artefatto | Esito | Data UTC |
 |---|---|---|---|---|
 | `ENV-2026-03` | STEP-02 | SINKHOLE-LAB isolata con snapshot `CLEAN-OS` | PASS | 2026-08-03 |
-| `ENV-2026-04` | STEP-04 parziale | servizio HTTP, JSONL, logrotate, health check e snapshot `SINKHOLE-READY` | PASS | 2026-08-03 |
-| `ENV-2026-05` | STEP-03/04 parziale | Wazuh all-in-one, agent Linux, ingestione JSONL, regole 200/404/405 e snapshot `WAZUH-PIPELINE-READY` | PASS | 2026-08-04 |
-| `ENV-2026-06` | STEP-02/03/04 parziale | Windows telemetry, NTP interno, dataset sintetico, smoke test NAT-less e snapshot per nodo | PASS parziale | 2026-08-05 |
+| `ENV-2026-04` | STEP-04 parziale | HTTP, JSONL, logrotate, health check e `SINKHOLE-READY` | PASS | 2026-08-03 |
+| `ENV-2026-05` | STEP-03/04 parziale | Wazuh all-in-one, JSONL e `WAZUH-PIPELINE-READY` | PASS | 2026-08-04 |
+| `ENV-2026-06` | STEP-02/03/04 parziale | Windows telemetry, NTP, dataset e smoke test NAT-less | PASS parziale | 2026-08-05 |
+| `ENV-2026-07` | STEP-02/03/04 parziale | auditd, FIM Whodata, test isolato e snapshot appliance | PASS parziale | 2026-08-06 |
 
 ## Dettaglio STEP-02
 
@@ -48,66 +49,75 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 |---|---|---|
 | KVM/QEMU e libvirt | VALIDATED | accelerazione hardware e gestione VM operative |
 | Rete `lab-lan` | VALIDATED | `10.10.10.0/24`, nessun forwarding |
-| NTP interno | VALIDATED | host `10.10.10.1`; client `.20`, `.30`, `.40` osservati |
+| NTP interno | VALIDATED | host `10.10.10.1`; client `.20`, `.30`, `.40`, `.50` verificati |
 | WIN11-LAB | WIN11-TELEMETRY-READY | `10.10.10.20/24`, NAT rimossa, zero default route |
 | SINKHOLE-LAB | SINKHOLE-TELEMETRY-READY | `10.10.10.30/24`, HTTP/JSONL e agent validati |
 | WAZUH-LAB | WAZUH-TELEMETRY-READY | `10.10.10.40/24`, pipeline multi-sorgente validata |
-| APPLIANCE-LAB | NOT STARTED | indirizzo previsto `10.10.10.50` |
+| APPLIANCE-LAB | APPLIANCE-TELEMETRY-READY | `10.10.10.50/24`, auditd/FIM, NAT rimossa, zero default route |
 | ANALYST-LAB | OPTIONAL | indirizzo previsto `10.10.10.60` |
 
-## Dettaglio checkpoint ENV-2026-06
+## Dettaglio ENV-2026-07
 
-### Windows e dataset
-
-| Controllo | Stato |
-|---|---|
-| Wazuh Agent `WIN11-LAB` / ID 002 Active | PASS |
-| Sysmon Operational acquisito | PASS |
-| PowerShell Operational e Script Block Logging 4104 | PASS |
-| Task Scheduler Operational | PASS |
-| auditing Security 4698/4699 | PASS |
-| account standard `labuser`, non amministratore | PASS |
-| dataset sintetico: 27 file + manifesto | PASS |
-| integrità: 27/27, nessun file modificato/mancante/inatteso | PASS |
-| test positivo Sysmon FileCreate sotto `C:\Lab\` | PASS |
-| test negativo FileCreate fuori dai path monitorati | PASS |
-| task headless come SYSTEM e correlazione Sysmon | PASS |
-| cleanup di task, marker e directory temporanee | PASS |
-
-### Isolamento e tempo
+### Baseline e isolamento
 
 | Controllo | Stato |
 |---|---|
-| server NTP interno `10.10.10.1:123/udp` | PASS |
-| WIN11-LAB usa `10.10.10.1` | PASS |
-| WAZUH-LAB usa `10.10.10.1` | PASS |
-| SINKHOLE-LAB usa `10.10.10.1` | PASS |
-| NAT-TEMP rimossa da WIN11-LAB | PASS |
-| zero default route su WIN11-LAB | PASS |
-| Wazuh `10.10.10.40:1514/tcp` raggiungibile | PASS |
-| sinkhole `10.10.10.30:8080/tcp` raggiungibile | PASS |
+| Ubuntu Server 24.04 LTS minimizzato | PASS |
+| root LVM esteso a circa 38 GiB | PASS |
+| snapshot `CLEAN-OS` a VM spenta | PASS |
+| sola `lab-lan` su `10.10.10.50/24` | PASS |
+| NIC NAT rimossa | PASS |
+| default route assente | PASS |
+| accesso Internet assente | PASS |
+| NTP interno `10.10.10.1` sincronizzato | PASS |
 
-### Smoke test NAT-less
+### Auditd e Wazuh
 
-| Prova | Stato |
+| Controllo | Stato |
 |---|---|
-| Sysmon Event ID 1 / rule 92004 | PASS |
-| PowerShell Event ID 4104 / rule 109910 | PASS |
-| Task Scheduler Event ID 106 / rule 67014 | PASS |
-| Security Event ID 4698 / rule 60228 | PASS |
-| Task Scheduler Event ID 141 / rule 67015 | PASS |
-| sinkhole `GET /final-natless-check` → 404 / rule 100102 | PASS |
-| alert verificati in CLI e Threat Hunting | PASS |
+| `auditd` e `audispd-plugins` installati | PASS |
+| marker audit locale e `lost=0` | PASS |
+| Wazuh Agent 4.14.7 / ID `003` Active | PASS |
+| `/var/log/audit/audit.log` raccolto | PASS |
+| mapping `tio_appliance_exec:execute` | PASS |
+| alert rule `80789` | PASS |
 
-### Snapshot e integrità privata
+### FIM Whodata
+
+| Controllo | Stato |
+|---|---|
+| percorso `/opt/tio-appliance-lab/data` | PASS |
+| watch dinamica `wazuh_fim` | PASS |
+| file added / rule `554` | PASS |
+| contenuto modified / rule `550` | PASS |
+| permessi modified / rule `550` | PASS |
+| file deleted / rule `553` | PASS |
+| attribuzione `labadmin` e processo | PASS |
+| test negativo sotto `/var/tmp` | PASS |
+
+La prima configurazione conteneva una watch Audit duplicata sul percorso FIM. La watch personalizzata è stata rimossa e il ciclo è stato ripetuto con la sola chiave dinamica `wazuh_fim`.
+
+### SCA e snapshot
+
+| Controllo | Stato |
+|---|---|
+| SCA `35752` modalità file Audit | `failed -> passed` |
+| SCA `35754` gruppo file Audit | `failed -> passed` |
+| configurazione stabile dopo restart agent | PASS |
+| bundle pre e post isolamento verificati | PASS |
+| snapshot `APPLIANCE-TELEMETRY-READY` | PASS |
+| riavvio, SSH e agent Active dopo snapshot | PASS |
+
+## Snapshot e integrità privata
 
 | Nodo | Snapshot | Stato |
 |---|---|---|
 | WIN11-LAB | `WIN11-TELEMETRY-READY` | PASS |
 | WAZUH-LAB | `WAZUH-TELEMETRY-READY` | PASS |
 | SINKHOLE-LAB | `SINKHOLE-TELEMETRY-READY` | PASS |
+| APPLIANCE-LAB | `APPLIANCE-TELEMETRY-READY` | PASS |
 
-I pacchetti privati, i manifesti SHA-256 e i metadati XML degli snapshot sono stati verificati prima e dopo il trasferimento. Non sono pubblicati nel repository.
+Pacchetti privati, manifesti SHA-256 e metadati XML sono stati verificati prima e dopo il trasferimento. Non sono pubblicati nel repository.
 
 ## Evidenze e configurazioni pubbliche
 
@@ -115,15 +125,19 @@ I pacchetti privati, i manifesti SHA-256 e i metadati XML degli snapshot sono st
 - `evidence/sanitized/ENV-2026-04-sinkhole-ready.md`;
 - `evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`;
 - `evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`;
+- `evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md`;
 - `configs/sinkhole/`;
+- `configs/auditd/70-tio-appliance.rules`;
 - `configs/wazuh/linux-localfile/tio-sinkhole-jsonl.xml`;
+- `configs/wazuh/linux-fim/tio-appliance-fim.xml`;
+- `configs/wazuh/lists/tio-audit-keys.txt`;
 - `configs/wazuh/windows-eventchannel/tio-windows-eventchannels.xml`;
-- `configs/wazuh/rules/tio_sinkhole_rules.xml`.
+- `configs/wazuh/rules/tio_sinkhole_rules.xml`;
+- `scripts/lab/tio-marker.sh`.
 
 ## Limiti correnti
 
-- `ENV-2026-06` non equivale a `LOGGING-READY`.
-- APPLIANCE-LAB, auditd e Wazuh FIM non sono ancora disponibili.
+- `ENV-2026-07` non equivale a `LOGGING-READY`.
 - Retention finale, matrice TP/TN, metriche e ripetizione completa dopo rollback restano da completare.
 - La regola Windows `109910` è validata nel laboratorio; la pubblicazione dell'XML manager completo richiede una revisione dedicata.
 - Le raw evidence, gli inventari completi, gli UUID, i MAC, le credenziali, gli archivi privati e i percorsi locali restano fuori dal repository.
