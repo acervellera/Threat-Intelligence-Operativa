@@ -2,8 +2,8 @@
 
 **Stato:** `IN PROGRESS`  
 **Fase primaria:** `STEP-02 — Rete e VM`  
-**Ultimo checkpoint:** `ENV-2026-06 — telemetria multi-sorgente isolata`  
-**Prossimo checkpoint:** `APPLIANCE-LAB` su `10.10.10.50`
+**Ultimo checkpoint:** `ENV-2026-07 — APPLIANCE-LAB telemetry ready`  
+**Prossimo checkpoint:** retention, matrice TP/TN e rollback coordinato
 
 ## Obiettivo
 
@@ -22,14 +22,14 @@ Arrivare a una baseline ripetibile da cui iniziano tutti i casi, mantenendo sepa
 | WIN11-LAB | `10.10.10.20` | isolata, agent Active, telemetria Windows validata | `CLEAN-OS`, `WIN11-TELEMETRY-READY` |
 | SINKHOLE-LAB | `10.10.10.30` | isolata, HTTP/JSONL e agent validati | `CLEAN-OS`, `SINKHOLE-READY`, `SINKHOLE-TELEMETRY-READY` |
 | WAZUH-LAB | `10.10.10.40` | isolata, pipeline multi-sorgente validata | `CLEAN-OS`, `WAZUH-READY`, `WAZUH-PIPELINE-READY`, `WAZUH-TELEMETRY-READY` |
-| APPLIANCE-LAB | `10.10.10.50` | NOT STARTED | - |
+| APPLIANCE-LAB | `10.10.10.50` | isolata, auditd/FIM Whodata e agent validati | `CLEAN-OS`, `APPLIANCE-TELEMETRY-READY` |
 | ANALYST-LAB | `10.10.10.60` | OPTIONAL | - |
 
 ## Checkpoint verificati
 
 ### ENV-2026-03 — CLEAN-OS sinkhole
 
-- Debian 13 aggiornato;
+- Debian 13 aggiornata;
 - IP statico `10.10.10.30/24`;
 - nessuna default route e nessun accesso Internet;
 - snapshot `CLEAN-OS`.
@@ -63,68 +63,83 @@ Evidenza: [`ENV-2026-05-wazuh-sinkhole-pipeline.md`](../../evidence/sanitized/EN
 
 ### ENV-2026-06 — Telemetria multi-sorgente isolata
 
-#### WIN11-LAB
-
-- Windows 11 Pro su `10.10.10.20/24`;
-- account amministrativo `labadmin` e account standard `labuser`;
-- Wazuh Agent Active come agent `002`;
-- Sysmon Operational acquisito;
-- PowerShell Operational e Script Block Logging 4104;
-- Task Scheduler Operational;
-- auditing Security 4698/4699;
-- dataset sintetico con manifesto SHA-256;
+- WIN11-LAB con Wazuh Agent `002`, Sysmon, PowerShell 4104, Task Scheduler e Security 4698/4699;
+- dataset sintetico con manifesto SHA-256 e integrità 27/27;
 - test positivo e negativo Sysmon FileCreate;
-- task come SYSTEM correlata con Sysmon;
-- NIC NAT rimossa e zero default route;
-- snapshot `WIN11-TELEMETRY-READY`.
-
-#### NTP interno
-
-- host Ubuntu con `chronyd`;
-- listener NTP su `10.10.10.1:123/udp`;
-- subnet autorizzata `10.10.10.0/24`;
-- client `.20`, `.30` e `.40` osservati;
-- timestamp UTC coerenti.
-
-#### Smoke test NAT-less
-
-- Sysmon Event ID `1`, rule `92004`;
-- PowerShell Event ID `4104`, rule `109910`;
-- Task Scheduler Event ID `106`, rule `67014`;
-- Security Event ID `4698`, rule `60228`;
-- Task Scheduler Event ID `141`, rule `67015`;
-- richiesta WIN11-LAB → sinkhole `/final-natless-check`, HTTP 404, rule `100102`;
+- NTP interno `10.10.10.1` per `.20`, `.30` e `.40`;
+- NAT rimossa da WIN11-LAB;
+- smoke test endpoint → Wazuh e endpoint → sinkhole;
 - alert verificati in CLI e Threat Hunting;
-- cleanup completato.
-
-#### Snapshot e pacchetti privati
-
-- `WIN11-TELEMETRY-READY`;
-- `WAZUH-TELEMETRY-READY`;
-- `SINKHOLE-TELEMETRY-READY`;
-- manifesti SHA-256 e metadati XML verificati e conservati privatamente.
+- snapshot `WIN11-TELEMETRY-READY`, `WAZUH-TELEMETRY-READY` e `SINKHOLE-TELEMETRY-READY`.
 
 Evidenza: [`ENV-2026-06-multisource-telemetry-ready.md`](../../evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md).
+
+### ENV-2026-07 — APPLIANCE-TELEMETRY-READY
+
+#### Baseline
+
+- Ubuntu Server 24.04 LTS minimizzata;
+- 2 vCPU, 2 GiB RAM e root LVM di circa 38 GiB;
+- SSH, QEMU Guest Agent e timesyncd operativi;
+- NTP interno `10.10.10.1`;
+- snapshot `CLEAN-OS` creato prima della telemetria.
+
+#### Auditd e Wazuh
+
+- `auditd` e `audispd-plugins` installati;
+- regole persistenti per script sintetico e unit systemd di prova;
+- Wazuh Agent 4.14.7, agent `003`, Active;
+- raccolta `/var/log/audit/audit.log`;
+- mapping CDB `tio_appliance_exec:execute`;
+- alert Audit rule `80789`.
+
+#### FIM Whodata
+
+- monitoraggio realtime di `/opt/tio-appliance-lab/data`;
+- watch dinamica `wazuh_fim`;
+- ciclo file added, modified, permissions changed e deleted;
+- rules `554`, `550`, `553`;
+- utente e processo attribuiti a `labadmin`;
+- test negativo sotto `/var/tmp` con zero alert.
+
+Una watch Audit personalizzata duplicata sul percorso FIM è stata rimossa; il ciclo è stato ripetuto con la sola watch `wazuh_fim` e ha superato tutti i controlli.
+
+#### SCA, isolamento e snapshot
+
+- `/etc/audit/plugins.d/af_wazuh.conf` corretto a `0640 root:root`;
+- controlli SCA `35752` e `35754` passati da failed a passed;
+- NIC NAT rimossa dalla configurazione persistente;
+- assenza di default route e accesso Internet;
+- NTP interno, Audit e Wazuh operativi in isolamento;
+- bundle pre e post isolamento verificati;
+- snapshot `APPLIANCE-TELEMETRY-READY` a VM spenta;
+- riavvio, SSH e agent Active verificati.
+
+Evidenza: [`ENV-2026-07-appliance-telemetry-ready.md`](../../evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md).
 
 ## Flusso validato
 
 ```text
 WIN11-LAB
-  | Sysmon / PowerShell / Task Scheduler / Security
-  | Wazuh Agent TCP 1514
-  v
-WAZUH-LAB -> Manager -> alerts.json -> Filebeat -> Indexer -> Dashboard
-  ^
-  | Wazuh Agent TCP 1514
-  |
-SINKHOLE-LAB -> requests.jsonl
-  ^
-  | HTTP 8080
-  |
-WIN11-LAB
+  -> Sysmon / PowerShell / Task Scheduler / Security
+  -> Wazuh Agent 002
+  -> WAZUH-LAB
+
+SINKHOLE-LAB
+  -> requests.jsonl
+  -> Wazuh Agent 001
+  -> WAZUH-LAB
+
+APPLIANCE-LAB
+  -> auditd / FIM Whodata
+  -> Wazuh Agent 003
+  -> WAZUH-LAB
+
+WAZUH-LAB
+  -> Manager -> alerts.json -> Filebeat -> Indexer -> Dashboard
 ```
 
-I tre nodi operativi usano esclusivamente `lab-lan` durante il checkpoint finale.
+I quattro nodi principali usano esclusivamente `lab-lan` durante i checkpoint finali.
 
 ## Step 1 — Hypervisor e VM
 
@@ -132,20 +147,17 @@ I tre nodi operativi usano esclusivamente `lab-lan` durante il checkpoint finale
 - [x] Creare SINKHOLE-LAB.
 - [x] Creare WAZUH-LAB.
 - [x] Creare WIN11-LAB.
-- [ ] Creare APPLIANCE-LAB.
-- [ ] Creare ANALYST-LAB opzionale.
+- [x] Creare APPLIANCE-LAB.
+- [ ] Creare ANALYST-LAB solo se necessaria.
 
 ## Step 2 — Rete e tempo
 
 - [x] Creare host-only `10.10.10.0/24`.
 - [x] Verificare assenza di bridge verso LAN reale.
-- [x] Rimuovere NAT da SINKHOLE-LAB.
-- [x] Rimuovere NAT da WAZUH-LAB.
-- [x] Rimuovere NAT-TEMP da WIN11-LAB.
-- [x] Verificare zero default route sui tre nodi.
+- [x] Rimuovere NAT dai quattro nodi principali.
+- [x] Verificare zero default route sui quattro nodi.
 - [x] Configurare NTP interno su `10.10.10.1`.
-- [x] Verificare client NTP `.20`, `.30`, `.40`.
-- [ ] Estendere isolamento e NTP ad APPLIANCE-LAB.
+- [x] Verificare client NTP `.20`, `.30`, `.40`, `.50`.
 
 ## Step 3 — Sinkhole HTTP
 
@@ -153,60 +165,58 @@ I tre nodi operativi usano esclusivamente `lab-lan` durante il checkpoint finale
 - [x] endpoint `/heartbeat`;
 - [x] logging JSONL;
 - [x] utente dedicato e hardening `systemd`;
-- [x] rotazione e retention corrente;
-- [x] health check;
-- [x] invio del JSONL a Wazuh;
+- [x] rotazione e health check;
+- [x] invio JSONL a Wazuh;
 - [x] snapshot `SINKHOLE-TELEMETRY-READY`;
-- [ ] ripetere il health check dopo rollback.
+- [ ] ripetere health check dopo rollback globale.
 
 ## Step 4 — Wazuh
 
 - [x] installare Wazuh all-in-one;
 - [x] registrare agent Linux e Windows;
-- [x] acquisire JSONL ed EventChannel Windows;
-- [x] validare regole sinkhole e marker Windows;
+- [x] acquisire JSONL, EventChannel Windows e Audit Linux;
+- [x] validare regole sinkhole, marker Windows e audit execution;
 - [x] verificare dashboard e pipeline senza egress;
 - [x] snapshot `WAZUH-TELEMETRY-READY`;
 - [ ] definire retention finale;
-- [ ] registrare agent appliance;
-- [ ] ripetere la pipeline dopo rollback.
+- [ ] ripetere pipeline dopo rollback globale.
 
 ## Step 5 — Windows telemetry
 
-- [x] installare WIN11-LAB;
-- [x] installare Sysmon e applicare configurazione LAB;
-- [x] abilitare PowerShell Operational e Script Block Logging 4104;
-- [x] abilitare TaskScheduler/Operational;
-- [x] abilitare Security 4698/4699;
-- [x] configurare Wazuh EventChannel;
-- [x] creare dataset sintetico e verificarne il manifesto;
-- [x] eseguire test positivo e negativo FileCreate;
-- [x] creare snapshot `WIN11-TELEMETRY-READY`.
+- [x] Sysmon, PowerShell 4104, Task Scheduler e Security 4698/4699;
+- [x] Wazuh EventChannel;
+- [x] dataset sintetico e manifesto;
+- [x] test positivo e negativo FileCreate;
+- [x] snapshot `WIN11-TELEMETRY-READY`.
 
 ## Step 6 — Linux appliance telemetry
 
-- [ ] installare APPLIANCE-LAB;
-- [ ] installare auditd;
-- [ ] configurare regole per execve, systemd e path appliance;
-- [ ] configurare Wazuh FIM;
-- [ ] verificare actor, hash e timestamp.
+- [x] installare APPLIANCE-LAB;
+- [x] installare auditd;
+- [x] configurare regole per esecuzione e systemd;
+- [x] configurare Wazuh FIM Whodata;
+- [x] verificare utente, processo, hash e timestamp;
+- [x] eseguire test negativo;
+- [x] rimuovere NAT e ripetere in isolamento;
+- [x] creare `APPLIANCE-TELEMETRY-READY`.
 
 ## Step 7 — Smoke test completo
 
-Completato per Windows + sinkhole + Wazuh:
+Completato per singolo nodo e per i checkpoint multi-sorgente:
 
 - [x] process creation Windows;
-- [x] file marker;
-- [x] richiesta di rete dal nodo Windows;
-- [x] eventi endpoint e rete nel dashboard;
-- [x] cleanup del marker e delle task;
-- [x] test negativo selettivo Sysmon;
+- [x] file marker Windows;
+- [x] richiesta di rete verso sinkhole;
+- [x] Audit execution Linux;
+- [x] FIM added/modified/deleted Whodata;
+- [x] test negativi selettivi Sysmon e FIM;
+- [x] cleanup degli artefatti temporanei;
 
 Restano:
 
-- [ ] telemetria appliance auditd/FIM;
 - [ ] matrice formale TP/TN completa;
 - [ ] metriche;
+- [ ] smoke test coordinato dei quattro nodi;
 - [ ] ripetizione completa dopo rollback.
 
 ## Step 8 — Snapshot finali
@@ -216,6 +226,7 @@ Restano:
 - [x] `WIN11-TELEMETRY-READY`;
 - [x] `WAZUH-TELEMETRY-READY`;
 - [x] `SINKHOLE-TELEMETRY-READY`;
+- [x] `APPLIANCE-TELEMETRY-READY`;
 - [ ] `LOGGING-READY`;
 - [ ] `LOGGING-READY-LINUX`.
 
@@ -227,8 +238,9 @@ La fase ambiente sarà `VALIDATED` quando:
 - ogni agent è online;
 - i campi chiave sono visibili;
 - sinkhole, endpoint e appliance inviano telemetria;
+- retention e test matrix sono formalizzati;
 - il test è ripetibile dopo rollback;
 - le raw evidence restano private;
 - cleanup e controllo baseline risultano completi.
 
-`ENV-2026-06` completa il checkpoint dei tre nodi principali già installati, ma non chiude la fase finché APPLIANCE-LAB resta assente.
+`ENV-2026-07` completa il checkpoint del quarto nodo principale, ma non chiude la fase finché retention, metriche e rollback globale restano aperti.
