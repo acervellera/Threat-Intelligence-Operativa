@@ -10,15 +10,17 @@ Questa cartella ospita esclusivamente copie `SANITIZED` o documentazione `PUBLIC
 | `ENV-2026-04` | STEP-04 parziale | [`sanitized/ENV-2026-04-sinkhole-ready.md`](sanitized/ENV-2026-04-sinkhole-ready.md) | PASS | 2026-08-03 |
 | `ENV-2026-05` | STEP-03/04 parziale | [`sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`](sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md) | PASS | 2026-08-04 |
 | `ENV-2026-06` | STEP-02/03/04 parziale | [`sanitized/ENV-2026-06-multisource-telemetry-ready.md`](sanitized/ENV-2026-06-multisource-telemetry-ready.md) | PASS parziale | 2026-08-05 |
+| `ENV-2026-07` | STEP-02/03/04 parziale | [`sanitized/ENV-2026-07-appliance-telemetry-ready.md`](sanitized/ENV-2026-07-appliance-telemetry-ready.md) | PASS parziale | 2026-08-06 |
 
 ## Ambito dei checkpoint
 
 - `ENV-2026-03`: baseline isolata e snapshot `CLEAN-OS` di SINKHOLE-LAB.
-- `ENV-2026-04`: servizio HTTP benigno, test 200/404/405, JSONL, rotazione, health check e snapshot `SINKHOLE-READY`.
-- `ENV-2026-05`: WAZUH-LAB, agent Linux, acquisizione JSONL, regole `100101`–`100103`, isolamento e snapshot `WAZUH-PIPELINE-READY`.
-- `ENV-2026-06`: WIN11-LAB, Sysmon, PowerShell 4104, Task Scheduler, auditing 4698/4699, dataset sintetico, NTP interno, smoke test NAT-less e snapshot `*-TELEMETRY-READY` dei tre nodi.
+- `ENV-2026-04`: HTTP benigno, test 200/404/405, JSONL, rotazione, health check e `SINKHOLE-READY`.
+- `ENV-2026-05`: WAZUH-LAB, agent Linux, acquisizione JSONL, regole `100101`–`100103`, isolamento e `WAZUH-PIPELINE-READY`.
+- `ENV-2026-06`: WIN11-LAB, Sysmon, PowerShell 4104, Task Scheduler, Security 4698/4699, dataset sintetico, NTP interno e smoke test NAT-less.
+- `ENV-2026-07`: APPLIANCE-LAB, auditd, raccolta Audit, rule `80789`, FIM Whodata rules `550/553/554`, recovery SCA, isolamento e `APPLIANCE-TELEMETRY-READY`.
 
-`ENV-2026-06` non equivale a `LOGGING-READY`: APPLIANCE-LAB, auditd/FIM, retention finale, metriche e ripetizione completa dopo rollback restano aperti.
+`ENV-2026-07` non equivale a `LOGGING-READY`: retention finale, matrice TP/TN, metriche e ripetizione coordinata dopo rollback restano aperte.
 
 ## Convenzione
 
@@ -60,7 +62,7 @@ Ogni artefatto deve dichiarare:
 
 ## Gestione delle acquisizioni private
 
-Per i checkpoint recenti sono stati usati pacchetti privati con manifesti SHA-256, verificati prima e dopo il trasferimento. Il repository pubblico registra soltanto l'esito e le informazioni necessarie a riprodurre il controllo, non:
+I checkpoint usano pacchetti privati con manifesti SHA-256 verificati prima e dopo il trasferimento. Il repository pubblico registra soltanto l'esito e le informazioni necessarie a riprodurre il controllo, non:
 
 - inventari completi di processi, servizi e task;
 - EVTX, PCAP, immagini disco o snapshot;
@@ -71,24 +73,12 @@ Per i checkpoint recenti sono stati usati pacchetti privati con manifesti SHA-25
 
 ## Contenuti vietati
 
-Non pubblicare:
-
-- immagini disco, ISO, snapshot o dump di memoria;
-- EVTX, ETL, PCAP o log raw non revisionati;
-- credenziali, token, cookie, chiavi o segreti;
-- UUID, MAC address e percorsi riconducibili all'host personale;
-- dati di persone, clienti, aziende, tenant o account reali;
-- malware, exploit o payload operativi.
-
-## Manifest minimo
-
-Per ogni file pubblico registrare Evidence ID, classificazione, timestamp UTC, SHA-256, fonte, trasformazioni applicate e reviewer.
+Non pubblicare immagini disco, ISO, snapshot, dump di memoria, log raw non revisionati, credenziali, token, cookie, chiavi, dati reali, identificatori dell'host, malware, exploit o payload operativi.
 
 ## Prossime evidenze pianificate
 
-- baseline `CLEAN-OS` e telemetria di APPLIANCE-LAB;
-- auditd e Wazuh FIM;
 - retention finale;
 - matrice TP/TN e metriche;
+- smoke test coordinato dei quattro nodi;
 - ripetizione dopo rollback;
 - snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
