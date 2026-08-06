@@ -8,10 +8,10 @@ Percorso pubblico e progressivo per trasformare fonti di threat intelligence in 
 
 **Fase primaria attiva:** `STEP-02 — Rete e VM`  
 **Attività parallele:** `STEP-03 — Baseline telemetria` e `STEP-04 — Smoke test`  
-**Checkpoint più recente:** `ENV-2026-06 — telemetria multi-sorgente isolata`  
-**Nucleo Windows + sinkhole + Wazuh:** `TELEMETRY-READY per nodo`  
+**Checkpoint più recente:** `ENV-2026-07 — APPLIANCE-LAB telemetry ready`  
+**Quattro nodi principali:** `TELEMETRY-READY per nodo`  
 **Snapshot finale LOGGING-READY:** `NOT READY`  
-**Data:** `2026-08-05 UTC`
+**Data:** `2026-08-06 UTC`
 
 Completato e verificato:
 
@@ -21,45 +21,45 @@ Completato e verificato:
 - `WIN11-LAB` su `10.10.10.20/24`, isolata e senza default route;
 - `SINKHOLE-LAB` su `10.10.10.30/24`, isolata e senza default route;
 - `WAZUH-LAB` su `10.10.10.40/24`, isolata e senza default route;
+- `APPLIANCE-LAB` su `10.10.10.50/24`, isolata e senza default route;
 - Wazuh manager, indexer, dashboard e Filebeat operativi;
-- agent Linux `sinkhole-lab` e agent Windows `WIN11-LAB` Active;
+- agent `sinkhole-lab`, `WIN11-LAB` e `appliance-lab` Active;
 - sinkhole HTTP benigno con JSONL e test 200/404/405;
-- Sysmon Operational acquisito da Wazuh;
-- PowerShell Script Block Logging 4104 acquisito;
-- Task Scheduler Operational e auditing Security 4698/4699 abilitati;
-- dataset sintetico con manifesto SHA-256 e integrità 27/27;
-- test positivo e negativo Sysmon FileCreate;
-- task headless come SYSTEM correlata con Sysmon;
-- smoke test end-to-end dopo la rimozione della NAT da WIN11-LAB;
-- alert verificati in `alerts.json` e nel Threat Hunting del dashboard;
-- snapshot `WIN11-TELEMETRY-READY`;
-- snapshot `WAZUH-TELEMETRY-READY`;
-- snapshot `SINKHOLE-TELEMETRY-READY`;
+- Sysmon, PowerShell 4104, Task Scheduler e Security 4698/4699 acquisiti;
+- dataset sintetico Windows con integrità 27/27;
+- auditd e raccolta `/var/log/audit/audit.log` su APPLIANCE-LAB;
+- alert Audit execute rule `80789` con chiave `tio_appliance_exec`;
+- Wazuh FIM realtime Whodata su `/opt/tio-appliance-lab/data`;
+- ciclo FIM `added`, `modified`, cambio permessi e `deleted` con rules `554`, `550`, `553`;
+- test negativi selettivi Windows e FIM;
+- recovery SCA dei controlli Audit `35752` e `35754`;
+- smoke test end-to-end senza NAT sui nodi endpoint;
+- alert verificati in `alerts.json` e nel dashboard;
+- snapshot `WIN11-TELEMETRY-READY`, `SINKHOLE-TELEMETRY-READY`, `WAZUH-TELEMETRY-READY` e `APPLIANCE-TELEMETRY-READY`;
 - pacchetti e manifesti privati verificati prima e dopo il trasferimento.
 
 Riferimenti principali:
 
 - [ENV-2026-06 — telemetria multi-sorgente isolata](evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md);
+- [ENV-2026-07 — APPLIANCE-LAB telemetry ready](evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md);
 - [configurazioni Wazuh validate](configs/wazuh/README.md);
-- [frammenti EventChannel Windows](configs/wazuh/windows-eventchannel/tio-windows-eventchannels.xml);
 - [stato complessivo](PROGRESS.md);
 - [roadmap](ROADMAP.md);
 - Issue `#3 — Costruire rete host-only e macchine virtuali`;
 - Issue `#5 — Dataset sintetico, sinkhole e snapshot LOGGING-READY`.
 
-**Prossimo checkpoint operativo:** creare `APPLIANCE-LAB` su `10.10.10.50`, configurare auditd e Wazuh FIM, quindi completare metriche e ripetizione dopo rollback.
+**Prossimo checkpoint operativo:** consolidare retention, matrice TP/TN, metriche e ripetizione coordinata dopo rollback, quindi creare i gate globali `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
 ## Perché non è ancora LOGGING-READY
 
-Il checkpoint `ENV-2026-06` valida il nucleo multi-sorgente a tre nodi, ma restano:
+I quattro nodi principali dispongono ora di snapshot `*-TELEMETRY-READY`, ma il gate globale richiede ancora:
 
-- APPLIANCE-LAB;
-- auditd e Wazuh FIM;
 - retention finale;
-- matrice formale TP/TN;
+- matrice formale TP/TN multi-nodo;
 - metriche di latency, coverage, precision e data quality;
 - ripetizione completa dopo rollback;
-- snapshot globali `LOGGING-READY` e `LOGGING-READY-LINUX`.
+- inventario globale degli snapshot e verifica di cleanup;
+- snapshot coordinati `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
 Le campagne rimangono intenzionalmente bloccate fino al superamento di questo gate.
 
@@ -74,17 +74,7 @@ Completare il percorso dall'allestimento del laboratorio fino alla pubblicazione
 5. BRICKSTORM — appliance Linux/vSphere
 6. WinRAR CVE-2025-8088 — ADS e Startup persistence
 
-Ogni caso deve produrre:
-
-- brief della campagna;
-- catena temporale e mapping MITRE ATT&CK con confidence A/B/C;
-- runbook ripetibile;
-- telemetria e registro evidenze E-001…E-006;
-- regola Wazuh, test positivo, test negativo e tuning;
-- finding da penetration test;
-- scheda incident response;
-- cleanup verificato;
-- pacchetto pubblico anonimizzato.
+Ogni caso deve produrre brief, timeline, mapping MITRE ATT&CK, runbook, telemetria, evidenze E-001…E-006, detection, test positivo e negativo, cleanup, finding e scheda incident response.
 
 ## Topologia
 
@@ -94,7 +84,7 @@ Ogni caso deve produrre:
 | WIN11-LAB | `10.10.10.20` | Sysmon, PowerShell, Task Scheduler, Wazuh Agent | `WIN11-TELEMETRY-READY` |
 | SINKHOLE-LAB | `10.10.10.30` | HTTP interno, heartbeat e JSONL | `SINKHOLE-TELEMETRY-READY` |
 | WAZUH-LAB | `10.10.10.40` | manager, indexer, dashboard e Filebeat | `WAZUH-TELEMETRY-READY` |
-| APPLIANCE-LAB | `10.10.10.50` | auditd, FIM e BRICKSTORM | NOT STARTED |
+| APPLIANCE-LAB | `10.10.10.50` | auditd, FIM Whodata e telemetria Linux | `APPLIANCE-TELEMETRY-READY` |
 | ANALYST-LAB | `10.10.10.60` | analisi e reporting, opzionale | NOT STARTED |
 
 La rete LAB è priva di forwarding. Le interfacce NAT sono ammesse soltanto durante installazione e aggiornamento e devono essere rimosse prima dei test.
@@ -106,7 +96,8 @@ La rete LAB è priva di forwarding. Le interfacce NAT sono ammesse soltanto dura
 | `ENV-2026-03` | `CLEAN-OS` SINKHOLE-LAB | PASS |
 | `ENV-2026-04` | `SINKHOLE-READY` | PASS |
 | `ENV-2026-05` | `WAZUH-PIPELINE-READY`, pipeline Linux/JSONL isolata | PASS parziale |
-| `ENV-2026-06` | telemetria Windows + sinkhole + Wazuh, NTP interno e snapshot per nodo | PASS parziale; non è `LOGGING-READY` |
+| `ENV-2026-06` | Windows + sinkhole + Wazuh, NTP interno e snapshot per nodo | PASS parziale |
+| `ENV-2026-07` | auditd + Wazuh FIM Whodata, isolamento e snapshot appliance | PASS parziale; non è `LOGGING-READY` |
 
 Gli snapshot interni QCOW2 non sostituiscono un backup indipendente.
 
@@ -117,7 +108,7 @@ Gli snapshot interni QCOW2 non sostituiscono un backup indipendente.
 | 0 | Governance e sicurezza | [`docs/00-governance`](docs/00-governance/README.md) | regole PUBLIC/SANITIZED/PRIVATE | IN PROGRESS |
 | 1 | Metodo analitico | [`docs/01-method`](docs/01-method/README.md) | scheda A/B/C e catena neutra | NOT STARTED |
 | 2 | Costruzione ambiente | [`labs/00-environment`](labs/00-environment/README.md) | topologia, snapshot e health check | IN PROGRESS |
-| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | sinkhole, Sysmon, PowerShell, auditd e Wazuh | IN PROGRESS |
+| 3 | Baseline telemetria | [`docs/03-telemetry-baseline`](docs/03-telemetry-baseline/README.md) | sinkhole, Windows, auditd, FIM e Wazuh | IN PROGRESS |
 | 4 | Detection engineering | [`docs/04-detection-engineering`](docs/04-detection-engineering/README.md) | matrice TP/TN, tuning e metriche | IN PROGRESS |
 | 5-10 | Sei campagne | [`labs`](labs/README.md) | un caso completo per campagna | BLOCKED |
 | 11 | Reporting | [`docs/05-reporting`](docs/05-reporting/README.md) | finding, IR report e timeline UTC | NOT STARTED |
@@ -138,16 +129,7 @@ Gli snapshot interni QCOW2 non sostituiscono un backup indipendente.
 
 ## Regola di pubblicazione
 
-Il repository contiene soltanto materiale **PUBLIC** o **SANITIZED**. Non caricare mai:
-
-- credenziali, cookie, token, wallet, account o documenti reali;
-- nomi di persone, clienti, aziende o host interni;
-- IP, domini, tenant, e-mail e percorsi riconducibili a un ambiente reale;
-- EVTX, PCAP, memory dump o immagini disco non sanificati;
-- malware, exploit, archivi weaponized o payload operativi;
-- log completi prima della revisione e anonimizzazione.
-
-Le evidenze raw restano fuori dal repository in uno storage privato. La cartella [`evidence`](evidence/README.md) ospita solo copie pubblicabili e ridotte.
+Il repository contiene soltanto materiale **PUBLIC** o **SANITIZED**. Non caricare mai credenziali, token, dati reali, identificatori dell'host, log completi non revisionati, immagini disco, malware o payload operativi. Le evidenze raw restano nello storage privato; [`evidence`](evidence/README.md) ospita solo copie pubblicabili e ridotte.
 
 ## Struttura
 
