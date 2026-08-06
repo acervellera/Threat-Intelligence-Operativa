@@ -1,0 +1,21 @@
+<!-- Threat Intelligence Operativa — APPLIANCE-LAB -->
+<!-- Integrare una sola volta nei blocchi corretti di ossec.conf. -->
+
+<!-- Dentro <syscheck> -->
+<directories check_all="yes" realtime="yes" whodata="yes" report_changes="yes">/opt/tio-appliance-lab/data</directories>
+
+<!-- A livello <ossec_config>; normalmente già presente nel pacchetto Linux -->
+<localfile>
+  <log_format>audit</log_format>
+  <location>/var/log/audit/audit.log</location>
+</localfile>
+
+<!--
+Validazione applicata nel laboratorio:
+  /var/ossec/bin/wazuh-syscheckd -t
+  /var/ossec/bin/wazuh-agentd -t
+  /var/ossec/bin/wazuh-logcollector -t
+
+Non aggiungere una seconda audit watch sullo stesso percorso con una chiave diversa:
+Wazuh crea dinamicamente la watch -k wazuh_fim necessaria a Whodata.
+-->
