@@ -8,9 +8,9 @@ La roadmap segue una dipendenza rigida: una fase si chiude solo quando la relati
 |---|---|---|---|
 | Fase 0 — Governance | IN PROGRESS | storage privato e `.gitignore` verificati | completare publication checklist di prova |
 | Fase 1 — Metodo analitico | NOT STARTED | - | compilare scheda A/B/C |
-| Fase 2 — Topologia e rete | IN PROGRESS | `ENV-2026-03`…`ENV-2026-06` | creare APPLIANCE-LAB |
-| Fase 3 — Raccolta e baseline | IN PROGRESS | pipeline Windows + Linux/JSONL isolata | aggiungere auditd e FIM appliance |
-| Fase 4 — Detection engineering | IN PROGRESS | regole sinkhole e marker Windows | completare TP/TN, metriche e rollback |
+| Fase 2 — Topologia e rete | IN PROGRESS | `ENV-2026-03`…`ENV-2026-07` | consolidare topologia e rollback globale |
+| Fase 3 — Raccolta e baseline | IN PROGRESS | Windows, sinkhole, auditd e FIM Whodata isolati | definire retention e ripetere dopo rollback |
+| Fase 4 — Detection engineering | IN PROGRESS | regole sinkhole, marker Windows e Audit rule `80789` | completare TP/TN e metriche |
 | Fasi 5-10 — Campagne | BLOCKED | - | attendere `LOGGING-READY` |
 | Fase 11 — Audit finale | NOT STARTED | - | attendere completamento casi |
 | Fase 12 — Portfolio | NOT STARTED | - | attendere evidenze complete |
@@ -42,19 +42,30 @@ La roadmap segue una dipendenza rigida: una fase si chiude solo quando la relati
 
 ### ENV-2026-06 — Telemetria multi-sorgente isolata
 
-- WIN11-LAB con Wazuh Agent, Sysmon, PowerShell 4104 e Task Scheduler;
-- auditing 4698/4699;
+- WIN11-LAB con Sysmon, PowerShell 4104, Task Scheduler e Security 4698/4699;
 - dataset sintetico con integrità 27/27;
-- test positivo e negativo FileCreate;
-- NTP interno `10.10.10.1` per i tre nodi;
-- NAT rimossa da WIN11-LAB;
-- smoke test endpoint → Wazuh e endpoint → sinkhole;
-- alert verificati in CLI e dashboard;
-- snapshot `WIN11-TELEMETRY-READY`;
-- snapshot `WAZUH-TELEMETRY-READY`;
-- snapshot `SINKHOLE-TELEMETRY-READY`.
+- NTP interno `10.10.10.1`;
+- smoke test Windows → Wazuh e Windows → sinkhole senza NAT;
+- snapshot `WIN11-TELEMETRY-READY`, `WAZUH-TELEMETRY-READY` e `SINKHOLE-TELEMETRY-READY`.
 
 Evidenza: `evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`.
+
+### ENV-2026-07 — APPLIANCE-TELEMETRY-READY
+
+- APPLIANCE-LAB Ubuntu Server minimizzata su `10.10.10.50/24`;
+- baseline `CLEAN-OS`;
+- auditd e `audispd-plugins`;
+- Wazuh Agent `003` Active;
+- audit log raccolto e rule `80789` per `tio_appliance_exec`;
+- FIM realtime Whodata su `/opt/tio-appliance-lab/data`;
+- rules `554`, `550`, `553` per added/modified/deleted;
+- test negativo FIM fuori perimetro;
+- recovery SCA `35752` e `35754`;
+- NAT rimossa, zero default route, NTP interno;
+- test Audit/FIM completamente isolato;
+- snapshot `APPLIANCE-TELEMETRY-READY`.
+
+Evidenza: `evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md`.
 
 ## Fase 0 — Governance del repository
 
@@ -67,7 +78,7 @@ Evidenza: `evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`.
 
 ## Fase 1 — Metodo analitico
 
-- [ ] Compilare le sei sezioni: Contesto, Catena, ATT&CK, Emulazione, Detection, Response.
+- [ ] Compilare Contesto, Catena, ATT&CK, Emulazione, Detection e Response.
 - [ ] Applicare confidence A/B/C.
 - [ ] Definire test positivo, test negativo, kill switch e cleanup.
 - [ ] Assegnare un Exercise ID e usare UTC.
@@ -79,22 +90,21 @@ Evidenza: `evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`.
 ### Completato
 
 - [x] Installare e validare KVM/QEMU con libvirt.
-- [x] Creare rete host-only `10.10.10.0/24`.
-- [x] Verificare assenza di bridge verso LAN reale.
+- [x] Creare rete host-only `10.10.10.0/24` senza forwarding.
+- [x] Preparare WIN11-LAB `10.10.10.20`.
 - [x] Preparare SINKHOLE-LAB `10.10.10.30`.
 - [x] Preparare WAZUH-LAB `10.10.10.40`.
-- [x] Preparare WIN11-LAB `10.10.10.20`.
-- [x] Rimuovere NAT dai tre nodi operativi.
+- [x] Preparare APPLIANCE-LAB `10.10.10.50`.
+- [x] Rimuovere NAT dai quattro nodi principali.
 - [x] Verificare assenza di default route.
 - [x] Configurare NTP interno `10.10.10.1`.
-- [x] Creare snapshot `*-TELEMETRY-READY` dei tre nodi.
+- [x] Creare snapshot `*-TELEMETRY-READY` dei quattro nodi.
 
 ### Da completare
 
-- [ ] Preparare APPLIANCE-LAB `10.10.10.50`.
-- [ ] Preparare ANALYST-LAB `10.10.10.60` opzionale.
-- [ ] Applicare isolamento, NTP e snapshot ad APPLIANCE-LAB.
-- [ ] Documentare la topologia completa finale.
+- [ ] Preparare ANALYST-LAB `10.10.10.60` solo se realmente necessaria.
+- [ ] Documentare l'inventario globale degli snapshot.
+- [ ] Ripetere health check e connettività dopo rollback coordinato.
 
 **Gate:** tutti i nodi principali sono isolati, ripristinabili e raggiungibili soltanto nella rete LAB.
 
@@ -110,16 +120,16 @@ Evidenza: `evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`.
 - [x] Task Scheduler Operational.
 - [x] auditing Security 4698/4699.
 - [x] dataset sintetico e manifesto SHA-256.
-- [x] test positivo e negativo FileCreate.
-- [x] smoke test Windows + sinkhole + Wazuh senza NAT.
-- [x] snapshot per singolo nodo.
+- [x] auditd su APPLIANCE-LAB.
+- [x] raccolta `audit.log` e mapping CDB della chiave execution.
+- [x] Wazuh FIM realtime Whodata.
+- [x] test positivi e negativi Windows e Linux.
+- [x] smoke test isolati e snapshot per singolo nodo.
 
 ### Da completare
 
 - [ ] Definire retention finale di laboratorio.
-- [ ] Registrare agent appliance Linux.
-- [ ] Configurare auditd e Wazuh FIM.
-- [ ] Eseguire smoke test comprendente l'appliance.
+- [ ] Eseguire smoke test coordinato dei quattro nodi.
 - [ ] Ripetere il test completo dopo rollback.
 - [ ] Creare snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
@@ -129,19 +139,17 @@ Evidenza: `evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`.
 
 ### Completato per i checkpoint tecnici
 
-- [x] Regola padre sinkhole `100100`.
-- [x] Heartbeat 200 `100101`.
-- [x] HTTP 404 `100102`.
-- [x] HTTP 405 `100103`.
+- [x] Regole sinkhole `100100`–`100103`.
 - [x] Marker PowerShell 4104 `109910`.
-- [x] Validazione con `wazuh-analysisd -t`.
+- [x] Audit execute watch `80789` con `tio_appliance_exec`.
+- [x] FIM rules `550`, `553`, `554` in modalità Whodata.
+- [x] Test negativi selettivi Sysmon e FIM.
 - [x] Alert reali in CLI e dashboard.
-- [x] Test negativo selettivo Sysmon FileCreate.
 
 ### Da completare
 
 - [ ] Pubblicare rule pack Windows dopo revisione dedicata.
-- [ ] Eseguire matrice TP1, TP2, TN1 e TN2.
+- [ ] Eseguire matrice TP1, TP2, TN1 e TN2 multi-nodo.
 - [ ] Aggiungere tuning per frequenza e contesto.
 - [ ] Misurare latency, coverage, precision, data quality e repeatability.
 - [ ] Ripetere dopo rollback e verificare cleanup.
@@ -177,11 +185,11 @@ Evidenza: `evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`.
 
 ## Sequenza operativa immediata
 
-1. creare APPLIANCE-LAB;
-2. configurare auditd e Wazuh FIM;
-3. integrare la quarta sorgente nel dashboard;
-4. definire retention;
-5. eseguire matrice TP/TN e metriche;
-6. ripetere tutto dopo rollback;
+1. definire retention finale;
+2. costruire matrice TP/TN multi-nodo;
+3. misurare latency, coverage, precision e data quality;
+4. eseguire smoke test coordinato dei quattro nodi;
+5. ripetere tutto dopo rollback;
+6. verificare cleanup e inventario snapshot;
 7. creare `LOGGING-READY` e `LOGGING-READY-LINUX`;
 8. sbloccare le campagne.
