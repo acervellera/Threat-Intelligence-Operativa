@@ -11,6 +11,8 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 | Ultimo checkpoint | `ENV-2026-07 — APPLIANCE-LAB telemetry ready` |
 | Ultimo aggiornamento | `2026-08-06 UTC` |
 | Prossima attività | retention, matrice TP/TN, metriche e rollback coordinato |
+| Track A | quattro nodi `TELEMETRY-READY`; gate globale aperto |
+| Track B | `PLANNED / BLOCKED`; dopo `LOGGING-READY` e primo caso benigno completo |
 | Issue topologia | `#3 — Costruire rete host-only e macchine virtuali` |
 | Issue smoke test | `#5 — Dataset sintetico, sinkhole e snapshot LOGGING-READY` |
 
@@ -23,15 +25,28 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 | STEP-02 | Rete e VM | IN PROGRESS | `ENV-2026-03`…`ENV-2026-07`; quattro nodi principali isolati | 2026-08-06 |
 | STEP-03 | Wazuh, Sysmon, PowerShell e auditd | IN PROGRESS | Windows, sinkhole, auditd e FIM Whodata validati | 2026-08-06 |
 | STEP-04 | Smoke test e snapshot LOGGING-READY | IN PROGRESS | quattro snapshot `*-TELEMETRY-READY`; non è `LOGGING-READY` | 2026-08-06 |
-| CASE-01 | CaptiveCrunch / Storm-2945 | BLOCKED | attende `LOGGING-READY` | - |
-| CASE-02A | ACR Stealer Chain A | BLOCKED | attende `LOGGING-READY` | - |
-| CASE-02B | ACR Stealer Chain B | BLOCKED | attende `LOGGING-READY` | - |
-| CASE-03 | UNC1069 | BLOCKED | attende `LOGGING-READY` | - |
-| CASE-04 | UNC3753 / Luna Moth | BLOCKED | attende `LOGGING-READY` | - |
-| CASE-05 | BRICKSTORM | BLOCKED | attende `LOGGING-READY-LINUX` | - |
-| CASE-06 | WinRAR CVE-2025-8088 | BLOCKED | attende `LOGGING-READY` | - |
+| CASE-01 | CaptiveCrunch / Storm-2945 — Track A | BLOCKED | attende `LOGGING-READY` | - |
+| CASE-02A | ACR Stealer Chain A — Track A | BLOCKED | attende `LOGGING-READY` | - |
+| CASE-02B | ACR Stealer Chain B — Track A | BLOCKED | attende `LOGGING-READY` | - |
+| CASE-03 | UNC1069 — Track A | BLOCKED | attende `LOGGING-READY` | - |
+| CASE-04 | UNC3753 / Luna Moth — Track A | BLOCKED | attende `LOGGING-READY` | - |
+| CASE-05 | BRICKSTORM — Track A | BLOCKED | attende `LOGGING-READY-LINUX` | - |
+| CASE-06 | WinRAR CVE-2025-8088 — Track A | BLOCKED | attende `LOGGING-READY` | - |
+| TRACK-B | Malware analysis separata | PLANNED / BLOCKED | attende `LOGGING-READY` e primo caso Track A completo | 2026-08-06 |
 | STEP-11 | Test matrix e metriche | NOT STARTED | - | - |
 | STEP-12 | Portfolio finale | NOT STARTED | - | - |
+
+## Ordine operativo approvato
+
+1. completare la Track A fino a `LOGGING-READY` e `LOGGING-READY-LINUX`;
+2. completare il primo caso benigno end-to-end nella Track A;
+3. costruire una sola volta la Track B separata e sacrificabile;
+4. ripetere il primo caso con analisi statica e dinamica solo se appropriata;
+5. confrontare fonti, emulazione e comportamento osservato;
+6. aggiornare detection, gap, tuning e report;
+7. applicare il ciclo a due track ai casi successivi.
+
+La Track B non usa `lab-lan`, non usa WAZUH-LAB e non viene eseguita contemporaneamente alla Track A sullo stesso host. La metodologia completa è descritta in `docs/07-malware-analysis-track/README.md`.
 
 ## Checkpoint pubblicati
 
@@ -133,19 +148,22 @@ Pacchetti privati, manifesti SHA-256 e metadati XML sono stati verificati prima 
 - `configs/wazuh/lists/tio-audit-keys.txt`;
 - `configs/wazuh/windows-eventchannel/tio-windows-eventchannels.xml`;
 - `configs/wazuh/rules/tio_sinkhole_rules.xml`;
-- `scripts/lab/tio-marker.sh`.
+- `scripts/lab/tio-marker.sh`;
+- `docs/07-malware-analysis-track/README.md`.
 
 ## Limiti correnti
 
 - `ENV-2026-07` non equivale a `LOGGING-READY`.
 - Retention finale, matrice TP/TN, metriche e ripetizione completa dopo rollback restano da completare.
+- La Track B è soltanto pianificata e non deve essere avviata prima dei gate dichiarati.
 - La regola Windows `109910` è validata nel laboratorio; la pubblicazione dell'XML manager completo richiede una revisione dedicata.
-- Le raw evidence, gli inventari completi, gli UUID, i MAC, le credenziali, gli archivi privati e i percorsi locali restano fuori dal repository.
+- Le raw evidence, gli inventari completi, gli UUID, i MAC, le credenziali, gli archivi privati, i percorsi locali, i campioni e il materiale contaminato restano fuori dal repository.
 
 ## Regole di aggiornamento
 
 - `NOT STARTED`: nessuna attività verificabile iniziata.
 - `NEXT`: prossimo componente pianificato.
+- `PLANNED / BLOCKED`: attività definita ma non eseguibile finché i gate precedenti non sono soddisfatti.
 - `IN PROGRESS`: lavoro avviato; possono esistere checkpoint ed evidenze parziali.
 - `BLOCKED`: attività non eseguibile finché non viene superato un gate precedente.
 - `VALIDATED`: Definition of Done della fase completata con test ripetibili.
