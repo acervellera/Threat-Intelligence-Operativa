@@ -8,11 +8,13 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 |---|---|
 | Fase primaria attiva | `STEP-02 — Rete e VM` |
 | Attività parallele | `STEP-03 — Baseline telemetria`, `STEP-04 — Detection engineering` |
-| Ultimo checkpoint | `ENV-2026-09 — matrice formale TP/TN multi-nodo` |
+| Ultimo checkpoint | `ENV-2026-11 — rollback coordinato e ripetibilità` |
 | Ultimo aggiornamento | `2026-08-07 UTC` |
 | Retention finale | `PASS` (`ENV-2026-08`) |
 | Matrice TP/TN | `14/14 PASS` (`ENV-2026-09`) |
-| Prossima attività | metriche, smoke test coordinato, rollback e snapshot globali |
+| Metriche | `PASS` (`ENV-2026-10`) |
+| Repeatability rappresentativa | `8/8 PASS dopo rollback` (`ENV-2026-11`) |
+| Prossima attività | cleanup/baseline globali, inventario snapshot finale e snapshot globali |
 | Track A | quattro nodi `TELEMETRY-READY`; gate globale ancora aperto |
 | Track B | `PLANNED / BLOCKED`; dopo `LOGGING-READY` e primo caso benigno completo |
 
@@ -22,9 +24,9 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 |---|---|---|---|---|
 | STEP-00 | Governance e publication gate | IN PROGRESS | storage privato e `.gitignore` verificati | 2026-08-03 |
 | STEP-01 | Metodo analitico A/B/C | NOT STARTED | - | - |
-| STEP-02 | Rete e VM | IN PROGRESS | `ENV-2026-03`…`ENV-2026-09`; quattro nodi principali isolati | 2026-08-07 |
-| STEP-03 | Wazuh, Sysmon, PowerShell e auditd | IN PROGRESS | baseline multi-sorgente + retention finale | 2026-08-07 |
-| STEP-04 | Smoke test / detection / snapshot LOGGING-READY | IN PROGRESS | matrice TP/TN 14/14 PASS; snapshot globali ancora mancanti | 2026-08-07 |
+| STEP-02 | Rete e VM | IN PROGRESS | `ENV-2026-03`…`ENV-2026-11`; rollback coordinato verificato | 2026-08-07 |
+| STEP-03 | Wazuh, Sysmon, PowerShell e auditd | IN PROGRESS | baseline multi-sorgente + retention + rollback | 2026-08-07 |
+| STEP-04 | Smoke test / detection / snapshot LOGGING-READY | IN PROGRESS | TP/TN, metriche e repeatability PASS; snapshot finali mancanti | 2026-08-07 |
 | CASE-01 | CaptiveCrunch / Storm-2945 — Track A | BLOCKED | attende `LOGGING-READY` | - |
 | CASE-02A | ACR Stealer Chain A — Track A | BLOCKED | attende `LOGGING-READY` | - |
 | CASE-02B | ACR Stealer Chain B — Track A | BLOCKED | attende `LOGGING-READY` | - |
@@ -33,7 +35,7 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 | CASE-05 | BRICKSTORM — Track A | BLOCKED | attende `LOGGING-READY-LINUX` | - |
 | CASE-06 | WinRAR CVE-2025-8088 — Track A | BLOCKED | attende `LOGGING-READY` | - |
 | TRACK-B | Malware analysis separata | PLANNED / BLOCKED | attende `LOGGING-READY` e primo caso Track A completo | 2026-08-06 |
-| STEP-11 | Test matrix e metriche | IN PROGRESS | TP/TN completata; metriche formali pending | 2026-08-07 |
+| STEP-11 | Test matrix e metriche | VALIDATED | `ENV-2026-09`, `ENV-2026-10`, `ENV-2026-11` | 2026-08-07 |
 | STEP-12 | Portfolio finale | NOT STARTED | - | - |
 
 ## Checkpoint pubblicati
@@ -47,6 +49,8 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 | `ENV-2026-07` | STEP-02/03/04 parziale | auditd, FIM Whodata, test isolato e snapshot appliance | PASS parziale | 2026-08-06 |
 | `ENV-2026-08` | STEP-03/04 | retention finale multi-nodo | PASS | 2026-08-07 |
 | `ENV-2026-09` | STEP-04 | matrice formale 8 TP + 6 TN | PASS | 2026-08-07 |
+| `ENV-2026-10` | STEP-11 | metriche di detection e qualità dei dati | PASS | 2026-08-07 |
+| `ENV-2026-11` | STEP-02/04/11 | rollback coordinato e repeatability rappresentativa | PASS | 2026-08-07 |
 
 ## Stato delle sorgenti
 
@@ -63,6 +67,7 @@ Aggiornare questo file soltanto quando esiste un'evidenza verificabile. Un check
 | auditd `tio_appliance_exec` / `80789` | VALIDATED |
 | FIM Whodata `554/550/553` | VALIDATED |
 | retention multi-nodo | VALIDATED |
+| rollback coordinato | VALIDATED sul checkpoint `ENV-2026-11` |
 
 ## ENV-2026-09 — risultato formale TP/TN
 
@@ -82,16 +87,44 @@ Finding principali:
 - FIM Whodata ha fornito utente/processo e SHA-256 old/new sulle modifiche;
 - il cleanup FIM ha prodotto `deleted -> 553`.
 
+## ENV-2026-10 — metriche
+
+| Metrica | Risultato |
+|---|---:|
+| Completamento scenari | 14/14 — 100,00% |
+| Efficacia True Positive | 8/8 — 100,00% |
+| Selettività True Negative | 6/6 — 100,00% |
+| Precisione grezza alert | 76,92% |
+| Precisione classificata sul set controllato | 100,00% |
+| Latenza mediana osservabile | 1,034 s |
+| Completezza campi | 68/68 — 100,00% |
+
+La precisione grezza conserva tre artefatti noti del test harness. Otto dei dieci alert intenzionali dispongono di timestamp sorgente/alert correlabili per la metrica di latenza; i due FIM restano `NON_MISURABILE` per questa specifica metrica.
+
+## ENV-2026-11 — rollback e repeatability
+
+| Controllo | Esito |
+|---|---:|
+| Baseline coordinata creata a VM spente | PASS |
+| VM ripristinate | 4/4 |
+| Artefatti RUN-1 assenti dopo revert | 3/3 |
+| Alert RUN-1 sul manager ripristinato | 0 |
+| RUN-1 | 8/8 PASS |
+| RUN-2 valido | 8/8 PASS |
+| Repeatability sul set rappresentativo | 100,00% |
+
+Due tentativi Windows non validi sono stati conservati come finding del test harness: doppia esecuzione sorgente e marker vuoti. Non sono stati riclassificati come fallimenti della detection.
+
 ## Snapshot e integrità privata
 
-| Nodo | Snapshot | Stato |
+| Nodo | Snapshot storico validato | Baseline coordinata ENV-2026-11 |
 |---|---|---|
 | WIN11-LAB | `WIN11-TELEMETRY-READY` | PASS |
 | WAZUH-LAB | `WAZUH-TELEMETRY-READY` | PASS |
 | SINKHOLE-LAB | `SINKHOLE-TELEMETRY-READY` | PASS |
 | APPLIANCE-LAB | `APPLIANCE-TELEMETRY-READY` | PASS |
 
-Le evidenze private di `ENV-2026-09` sono state centralizzate per sorgente, la matrice finale è stata congelata e il manifesto SHA-256 finale è stato verificato con tutti i file inclusi in stato `OK`. Hash privati, percorsi host e raw evidence non sono pubblicati.
+Le evidenze private di `ENV-2026-09`, `ENV-2026-10`, `ENV-2026-11` e delle visualizzazioni sono state congelate con manifesti SHA-256 verificati. Hash privati, percorsi host e raw evidence non sono pubblicati.
 
 ## Evidenze pubbliche principali
 
@@ -99,6 +132,8 @@ Le evidenze private di `ENV-2026-09` sono state centralizzate per sorgente, la m
 - `evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md`;
 - `evidence/sanitized/ENV-2026-08-retention-baseline.md`;
 - `evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md`;
+- `evidence/sanitized/ENV-2026-10-detection-metrics.md`;
+- `evidence/sanitized/ENV-2026-11-rollback-repeatability.md`;
 - `configs/sinkhole/`;
 - `configs/auditd/70-tio-appliance.rules`;
 - `configs/wazuh/`;
@@ -107,16 +142,13 @@ Le evidenze private di `ENV-2026-09` sono state centralizzate per sorgente, la m
 
 ## Cosa manca per LOGGING-READY
 
-- metriche formali di latency, coverage, precision, data quality e repeatability;
-- smoke test coordinato dei quattro nodi;
-- ripetizione completa dopo rollback;
 - verifica globale cleanup e baseline;
-- inventario globale degli snapshot;
+- consolidamento finale dell'inventario snapshot;
 - snapshot coordinati `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
 ## Ordine operativo approvato
 
-1. completare metriche, smoke test coordinato e rollback della Track A;
+1. completare cleanup/baseline globali e inventario snapshot;
 2. creare `LOGGING-READY` e `LOGGING-READY-LINUX`;
 3. completare il primo caso benigno end-to-end;
 4. costruire una sola volta la Track B separata e sacrificabile;
