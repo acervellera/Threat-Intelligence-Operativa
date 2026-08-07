@@ -6,144 +6,98 @@ Questa directory contiene copie pubbliche e ridotte delle configurazioni validat
 
 | Area | File | Stato | Checkpoint |
 |---|---|---|---|
-| Agent Linux sinkhole | [`linux-localfile/tio-sinkhole-jsonl.xml`](linux-localfile/tio-sinkhole-jsonl.xml) | VALIDATED | `ENV-2026-05` |
-| Regole sinkhole | [`rules/tio_sinkhole_rules.xml`](rules/tio_sinkhole_rules.xml) | VALIDATED | `ENV-2026-05` |
-| EventChannel Windows | [`windows-eventchannel/tio-windows-eventchannels.xml`](windows-eventchannel/tio-windows-eventchannels.xml) | VALIDATED | `ENV-2026-06` |
-| FIM Linux appliance | [`linux-fim/tio-appliance-fim.xml`](linux-fim/tio-appliance-fim.xml) | VALIDATED | `ENV-2026-07` |
-| Audit key mapping | [`lists/tio-audit-keys.txt`](lists/tio-audit-keys.txt) | VALIDATED | `ENV-2026-07` |
-| Pipeline Linux/JSONL isolata | agent → manager → indexer → dashboard | VALIDATED | `WAZUH-PIPELINE-READY` |
-| Pipeline Windows + sinkhole | multi-sorgente senza egress | VALIDATED per checkpoint | `ENV-2026-06` |
-| Pipeline appliance Audit/FIM | auditd + Whodata → Wazuh | VALIDATED per checkpoint | `ENV-2026-07` |
+| Agent Linux sinkhole | [`linux-localfile/tio-sinkhole-jsonl.xml`](linux-localfile/tio-sinkhole-jsonl.xml) | VALIDATED | `ENV-2026-05`, confermato `ENV-2026-09` |
+| Regole sinkhole | [`rules/tio_sinkhole_rules.xml`](rules/tio_sinkhole_rules.xml) | VALIDATED TP/TN | `ENV-2026-09` |
+| EventChannel Windows | [`windows-eventchannel/tio-windows-eventchannels.xml`](windows-eventchannel/tio-windows-eventchannels.xml) | VALIDATED | `ENV-2026-09` |
+| FIM Linux appliance | [`linux-fim/tio-appliance-fim.xml`](linux-fim/tio-appliance-fim.xml) | VALIDATED TP/TN | `ENV-2026-09` |
+| Audit key mapping | [`lists/tio-audit-keys.txt`](lists/tio-audit-keys.txt) | VALIDATED TP/TN | `ENV-2026-09` |
+| Pipeline multi-sorgente | agent → manager → indexer → dashboard | VALIDATED per checkpoint | `ENV-2026-09` |
+| Retention manager | alert rotation; `logall/logall_json` off | VALIDATED | `ENV-2026-08` |
 
 ## Ambiente validato
 
-- WAZUH-LAB: Ubuntu Server 24.04 LTS, `10.10.10.40/24`;
-- Wazuh all-in-one 4.14.7;
-- SINKHOLE-LAB: Debian 13, `10.10.10.30/24`;
-- WIN11-LAB: Windows 11 Pro, `10.10.10.20/24`;
-- APPLIANCE-LAB: Ubuntu Server 24.04 LTS, `10.10.10.50/24`;
-- rete `lab-lan` senza forwarding e senza default route sui nodi operativi;
+- WAZUH-LAB: Ubuntu Server 24.04 LTS, `10.10.10.40/24`, Wazuh 4.14.7 all-in-one;
+- SINKHOLE-LAB: Debian 13, `10.10.10.30/24`, Agent `001`;
+- WIN11-LAB: Windows 11 Pro, `10.10.10.20/24`, Agent `002`;
+- APPLIANCE-LAB: Ubuntu Server 24.04 LTS, `10.10.10.50/24`, Agent `003`;
+- `lab-lan` senza forwarding e senza default route sui nodi operativi;
 - NTP interno tramite host `10.10.10.1`;
-- snapshot `WAZUH-TELEMETRY-READY`, `SINKHOLE-TELEMETRY-READY`, `WIN11-TELEMETRY-READY` e `APPLIANCE-TELEMETRY-READY`.
+- snapshot `*-TELEMETRY-READY` sui quattro nodi principali.
 
-## Agent Linux: JSONL sinkhole
+## Sinkhole JSONL
 
-Il frammento `tio-sinkhole-jsonl.xml` configura `wazuh-logcollector` per seguire:
+Il frammento `tio-sinkhole-jsonl.xml` segue `/var/log/tio-sinkhole/requests.jsonl` come JSON strutturato. Le regole pubbliche hanno superato la matrice formale:
 
-```text
-/var/log/tio-sinkhole/requests.jsonl
-```
+| Rule | Condizione | ENV-2026-09 |
+|---:|---|---|
+| `100101` | heartbeat 200 | TP PASS |
+| `100102` | status 404 | TP + TN PASS |
+| `100103` | status 405 | TP + TN PASS |
 
-Il formato è `json` e vengono aggiunte label di sorgente e ruolo. La validazione ha incluso backup di `ossec.conf`, test `wazuh-logcollector -t`, test `wazuh-agentd -t`, restart controllato e conferma degli alert.
+## Windows EventChannel
 
-## Agent Windows: EventChannel
+Il frammento pubblico raccoglie Sysmon, PowerShell Operational e TaskScheduler Operational; `Application`, `Security` e `System` sono acquisiti nella baseline agent.
 
-Il frammento `tio-windows-eventchannels.xml` raccoglie gli eventi futuri dai canali:
-
-- `Microsoft-Windows-Sysmon/Operational`;
-- `Microsoft-Windows-PowerShell/Operational`;
-- `Microsoft-Windows-TaskScheduler/Operational`.
-
-I log `Application`, `Security` e `System` erano già acquisiti. L'auditing Task Scheduler `4698/4699` è stato abilitato separatamente tramite policy Windows.
-
-## Agent Linux appliance: Audit e FIM
-
-Il frammento `linux-fim/tio-appliance-fim.xml` documenta:
-
-```xml
-<directories check_all="yes" realtime="yes" whodata="yes" report_changes="yes">/opt/tio-appliance-lab/data</directories>
-```
-
-e la raccolta Audit:
-
-```xml
-<localfile>
-  <log_format>audit</log_format>
-  <location>/var/log/audit/audit.log</location>
-</localfile>
-```
-
-Validazioni applicate:
-
-```bash
-/var/ossec/bin/wazuh-syscheckd -t
-/var/ossec/bin/wazuh-agentd -t
-/var/ossec/bin/wazuh-logcollector -t
-systemctl restart wazuh-agent
-```
-
-Wazuh genera dinamicamente la watch:
+Mapping verificati:
 
 ```text
--w /opt/tio-appliance-lab/data -p wa -k wazuh_fim
+PowerShell 4104 -> 109910
+TaskScheduler 106 -> 67014
+Security 4698 -> 60228
+TaskScheduler 141 -> 67015
 ```
 
-Non deve essere aggiunta una seconda watch personalizzata sullo stesso percorso. Durante il primo test la sovrapposizione con `tio_appliance_files` impediva il corretto flusso Whodata; la watch duplicata è stata rimossa e il test è stato ripetuto con esito PASS.
+Security `4699` è stato osservato localmente durante il cleanup della task, ma non è stato osservato un alert Wazuh corrispondente. Con `logall/logall_json` disabilitati, la persistenza del singolo evento non allertante sul manager non è verificabile.
 
-## Mapping Audit sul manager
+La rule `109910` è validata nel laboratorio; l'XML manager completo resta privato finché non termina la revisione dedicata del rule pack Windows.
 
-La lista CDB del manager è stata estesa con:
+## Finding PowerShell
+
+I comandi diagnostici PowerShell che contengono letteralmente il trigger possono essere registrati a loro volta da Script Block Logging e generare alert `109910`. In `ENV-2026-09` l'evento intenzionale è stato separato dagli artefatti del test harness tramite identificatori dell'evento; il metodo successivo evita il trigger letterale nei comandi diagnostici.
+
+## Audit Linux appliance
+
+La lista CDB include:
 
 ```text
 tio_appliance_exec:execute
 ```
 
-Dopo il restart del manager, l'esecuzione dello script sintetico ha generato:
+L'esecuzione del marker benigno ha prodotto `execve success=yes` e rule `80789`; un'attività benigna fuori dalla watch ha prodotto `80789 = 0`.
 
-| ID | Livello | Scopo |
-|---:|---:|---|
-| `80789` | 3 | execute watch su `tio-marker.sh` con chiave `tio_appliance_exec` |
+## FIM Whodata
 
-## FIM rules validate
+Il frammento `linux-fim/tio-appliance-fim.xml` monitora:
 
-| ID | Evento | Scopo |
+```xml
+<directories check_all="yes" realtime="yes" whodata="yes" report_changes="yes">/opt/tio-appliance-lab/data</directories>
+```
+
+La watch dinamica `wazuh_fim` non deve essere duplicata con una watch Audit personalizzata sullo stesso percorso.
+
+Matrice formale:
+
+| Rule | Evento | Risultato |
 |---:|---|---|
-| `554` | `added` | file creato nel percorso sintetico |
-| `550` | `modified` | contenuto o attributi modificati |
-| `553` | `deleted` | file cancellato |
+| `554` | added | TP PASS |
+| `550` | modified | TP PASS, SHA-256 old/new osservati |
+| `553` | deleted | cleanup PASS |
+| target FIM | file fuori `/opt/tio-appliance-lab/data` | TN PASS |
 
-I quattro record del ciclo positivo sono stati prodotti in modalità `whodata` con attribuzione a `labadmin` e al processo responsabile. Il test negativo sotto `/var/tmp` ha prodotto zero alert FIM TIO.
+Whodata ha incluso utente e processo responsabile.
 
-## SCA e plugin Audit Wazuh
+## Retention manager
 
-Il plugin `/etc/audit/plugins.d/af_wazuh.conf` è stato portato a:
-
-```text
-mode=0640 owner=root group=root
-```
-
-Dopo il restart dell'agent il plugin, i servizi e la watch `wazuh_fim` sono rimasti operativi. I controlli SCA `35752` e `35754` hanno registrato la transizione `failed -> passed` tramite rule `19010`.
-
-## Regole validate
-
-### Sinkhole
-
-| ID | Livello | Scopo |
-|---:|---:|---|
-| `100100` | 0 | regola padre per JSON di `requests.jsonl` |
-| `100101` | 3 | heartbeat HTTP 200 |
-| `100102` | 5 | risposta HTTP 404 |
-| `100103` | 7 | metodo rifiutato con HTTP 405 |
-
-### Windows
-
-| ID | Livello | Scopo |
-|---:|---:|---|
-| `109910` | 5 | marker PowerShell Script Block Logging, Event ID 4104 |
-
-La regola `109910` è stata validata in laboratorio; l'XML manager completo resta nello storage privato finché non termina la revisione dedicata del rule pack Windows.
-
-## Query dashboard
+`ENV-2026-08` mantiene:
 
 ```text
-agent.id:"002" AND rule.id:"109910"
-agent.id:"002" AND (rule.id:"67014" OR rule.id:"67015" OR rule.id:"60228")
-agent.id:"001" AND data.path:"/final-natless-check"
-agent.id:"003" AND data.audit.key:"tio_appliance_exec"
-agent.id:"003" AND syscheck.path:"/opt/tio-appliance-lab/data/*"
+logall=no
+logall_json=no
 ```
 
-## Validazione e rollback
+La rotazione degli alert e la capacità disco sono state verificate. Questa scelta evita una raccolta raw indiscriminata, ma limita l'osservabilità dei TN al criterio `nessun alert target` più l'evidenza locale dell'azione quando necessaria.
+
+## Validazione
 
 Manager:
 
@@ -154,21 +108,21 @@ systemctl restart wazuh-manager
 
 Agent Linux:
 
-1. ripristinare il backup di `/var/ossec/etc/ossec.conf` o delle regole Audit;
-2. validare i componenti interessati;
-3. ricaricare `augenrules` quando necessario;
-4. riavviare `wazuh-agent`;
-5. verificare agent Active, watch `wazuh_fim` e alert.
+```bash
+/var/ossec/bin/wazuh-syscheckd -t
+/var/ossec/bin/wazuh-agentd -t
+/var/ossec/bin/wazuh-logcollector -t
+```
 
 ## Limiti
 
-- Le configurazioni pubblicate dimostrano la pipeline e non costituiscono un profilo di produzione.
+- Le configurazioni pubbliche validano il laboratorio, non costituiscono profili di produzione.
 - Marker, 404, 405 e singole modifiche FIM non dimostrano da soli attività malevola.
-- Retention finale, matrice TP/TN, metriche e ripetizione completa dopo rollback restano da completare.
-- `ENV-2026-07` non equivale a `LOGGING-READY`.
+- Retention e matrice TP/TN sono completate; restano metriche formali, tuning, smoke test coordinato e repeatability dopo rollback.
+- `ENV-2026-09` non equivale ancora a `LOGGING-READY`.
 
 Evidenze collegate:
 
-- [`../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md`](../../evidence/sanitized/ENV-2026-05-wazuh-sinkhole-pipeline.md)
-- [`../../evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`](../../evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md)
 - [`../../evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md`](../../evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md)
+- [`../../evidence/sanitized/ENV-2026-08-retention-baseline.md`](../../evidence/sanitized/ENV-2026-08-retention-baseline.md)
+- [`../../evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md`](../../evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md)
