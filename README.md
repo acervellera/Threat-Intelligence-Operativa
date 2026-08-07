@@ -7,10 +7,12 @@ Percorso pubblico e progressivo per trasformare fonti di threat intelligence in 
 ## Stato corrente
 
 **Fase primaria attiva:** `STEP-02 — Rete e VM`  
-**Attività parallele:** `STEP-03 — Baseline telemetria`, `STEP-04 — Detection engineering`  
-**Checkpoint più recente:** `ENV-2026-09 — matrice formale TP/TN multi-nodo`  
+**Attività parallele:** `STEP-03 — Baseline telemetria`, `STEP-04 — Detection engineering`, `STEP-11 — Test matrix e metriche`  
+**Checkpoint più recente:** `ENV-2026-11 — rollback coordinato e ripetibilità`  
 **Retention finale:** `PASS`  
 **Matrice TP/TN:** `14/14 PASS`  
+**Metriche formali:** `PASS`  
+**Repeatability rappresentativa:** `8/8 PASS dopo rollback`  
 **Quattro nodi principali:** `TELEMETRY-READY per nodo`  
 **Snapshot globale LOGGING-READY:** `NOT READY`  
 **Track B malware analysis:** `PLANNED / BLOCKED`  
@@ -29,13 +31,17 @@ Completato e verificato:
 - Wazuh FIM realtime Whodata con rules `554/550/553`;
 - retention finale multi-nodo (`ENV-2026-08`);
 - matrice formale 8 TP + 6 TN, 14/14 PASS (`ENV-2026-09`);
+- metriche di scenario, precisione alert, latenza osservabile e qualità dei dati (`ENV-2026-10`);
+- baseline coordinata, rollback reale e repeatability 8/8 sul set rappresentativo (`ENV-2026-11`);
 - cleanup FIM `deleted -> 553` verificato;
-- evidenze private centralizzate con matrice finale congelata e manifesto SHA-256 verificato.
+- evidenze private centralizzate con manifesti SHA-256 verificati.
 
 Riferimenti principali:
 
 - [ENV-2026-08 — retention baseline](evidence/sanitized/ENV-2026-08-retention-baseline.md);
 - [ENV-2026-09 — matrice formale TP/TN](evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md);
+- [ENV-2026-10 — metriche di detection](evidence/sanitized/ENV-2026-10-detection-metrics.md);
+- [ENV-2026-11 — rollback e ripetibilità](evidence/sanitized/ENV-2026-11-rollback-repeatability.md);
 - [baseline telemetria](docs/03-telemetry-baseline/README.md);
 - [detection engineering](docs/04-detection-engineering/README.md);
 - [stato complessivo](PROGRESS.md);
@@ -44,13 +50,10 @@ Riferimenti principali:
 
 ## Perché non è ancora LOGGING-READY
 
-Retention e matrice TP/TN sono chiuse. Il gate globale richiede ancora:
+Retention, matrice TP/TN, metriche e repeatability rappresentativa dopo rollback sono chiuse. Il gate globale richiede ancora:
 
-- metriche formali di latency, coverage, precision, data quality e repeatability;
-- smoke test coordinato dei quattro nodi;
-- ripetizione completa dopo rollback;
 - verifica globale cleanup e baseline;
-- inventario globale degli snapshot;
+- consolidamento finale dell'inventario snapshot;
 - snapshot coordinati `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
 Le campagne rimangono intenzionalmente bloccate fino al superamento di questo gate.
@@ -66,6 +69,25 @@ Le campagne rimangono intenzionalmente bloccate fino al superamento di questo ga
 | `ENV-2026-07` | auditd + FIM Whodata appliance | PASS parziale |
 | `ENV-2026-08` | retention finale multi-nodo | PASS |
 | `ENV-2026-09` | matrice formale TP/TN multi-nodo | PASS |
+| `ENV-2026-10` | metriche di detection e qualità dei dati | PASS |
+| `ENV-2026-11` | rollback coordinato e repeatability rappresentativa | PASS |
+
+## Risultati quantitativi
+
+`ENV-2026-10` misura esclusivamente il set controllato del laboratorio.
+
+| Metrica | Risultato |
+|---|---:|
+| Completamento scenari | 14/14 — 100,00% |
+| Efficacia True Positive | 8/8 — 100,00% |
+| Selettività True Negative | 6/6 — 100,00% |
+| Precisione grezza degli alert | 76,92% |
+| Precisione classificata sul set controllato | 100,00% |
+| Latenza mediana osservabile | 1,034 s |
+| Completezza campi definiti per triage | 68/68 — 100,00% |
+| Repeatability rappresentativa dopo rollback | 8/8 — 100,00% |
+
+I valori al 100% non equivalgono a copertura MITRE ATT&CK, precisione di produzione o prestazioni universali di Wazuh. La precisione grezza conserva tre artefatti noti del test harness PowerShell; i due scenari FIM non sono inclusi nelle statistiche di latenza perché non disponevano di una coppia di timestamp sorgente/alert sufficientemente omogenea.
 
 ## Risultato ENV-2026-09
 
@@ -79,7 +101,7 @@ La matrice formale contiene 14 test: 8 true positive e 6 true negative.
 | Audit Linux | `tio_appliance_exec -> 80789` e TN fuori watch |
 | FIM Linux | `added -> 554`, `modified -> 550`, TN fuori path, cleanup `deleted -> 553` |
 
-Un finding metodologico importante riguarda PowerShell: i comandi diagnostici contenenti letteralmente il trigger possono essere registrati a loro volta come 4104 e generare alert del test harness. Gli artefatti sono stati separati dall'evento intenzionale e il metodo di verifica è stato corretto.
+Un finding metodologico importante riguarda PowerShell: i comandi diagnostici contenenti letteralmente il trigger possono essere registrati a loro volta come 4104 e generare alert del test harness. Gli artefatti sono stati separati dall'evento intenzionale e il metodo di verifica è stato corretto. `ENV-2026-11` ha inoltre introdotto protezioni esplicite contro marker vuoti nei verificatori di repeatability.
 
 ## Topologia Track A
 
@@ -96,10 +118,10 @@ Un finding metodologico importante riguarda PowerShell: i comandi diagnostici co
 
 ### Track A
 
-1. completare metriche, smoke test coordinato e rollback;
+1. completare cleanup/baseline globali e inventario snapshot;
 2. creare `LOGGING-READY` e `LOGGING-READY-LINUX`;
 3. completare il primo caso interamente benigno, con detection, evidenze, cleanup, rollback e report;
-4. validare la ripetibilità end-to-end.
+4. validare la ripetibilità end-to-end del caso.
 
 ### Track B
 
