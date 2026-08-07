@@ -13,68 +13,29 @@ La Track B viene costruita soltanto dopo `LOGGING-READY` e dopo il completamento
 
 | Fase | Stato | Evidenza principale | Prossima azione |
 |---|---|---|---|
-| Fase 0 — Governance | IN PROGRESS | storage privato e `.gitignore` verificati | completare publication checklist di prova |
+| Fase 0 — Governance | IN PROGRESS | storage privato e `.gitignore` verificati | publication checklist di prova |
 | Fase 1 — Metodo analitico | NOT STARTED | - | compilare scheda A/B/C |
-| Fase 2 — Topologia e rete Track A | IN PROGRESS | `ENV-2026-03`…`ENV-2026-07` | consolidare topologia e rollback globale |
-| Fase 3 — Raccolta e baseline Track A | IN PROGRESS | Windows, sinkhole, auditd e FIM Whodata isolati | definire retention e ripetere dopo rollback |
-| Fase 4 — Detection engineering Track A | IN PROGRESS | regole sinkhole, marker Windows e Audit rule `80789` | completare TP/TN e metriche |
+| Fase 2 — Topologia e rete Track A | IN PROGRESS | `ENV-2026-03`…`ENV-2026-09` | rollback globale e inventario snapshot |
+| Fase 3 — Raccolta e baseline Track A | IN PROGRESS | telemetria multi-sorgente + `ENV-2026-08` retention | smoke test coordinato e rollback |
+| Fase 4 — Detection engineering Track A | IN PROGRESS | `ENV-2026-09` matrice 14/14 PASS | metriche e repeatability |
 | Primo caso Track A | BLOCKED | - | attendere `LOGGING-READY` |
 | Track B — Malware analysis | PLANNED / BLOCKED | metodologia pubblica definita | attendere primo caso Track A completo |
 | Casi successivi a due track | BLOCKED | - | attendere validazione Track B |
-| Fase 11 — Audit finale | NOT STARTED | - | attendere completamento casi |
-| Fase 12 — Portfolio | NOT STARTED | - | attendere evidenze complete |
 
 ## Checkpoint verificati
 
-### ENV-2026-03 — Baseline isolata SINKHOLE-LAB
+- `ENV-2026-03` — baseline isolata SINKHOLE-LAB;
+- `ENV-2026-04` — sinkhole HTTP/JSONL e `SINKHOLE-READY`;
+- `ENV-2026-05` — pipeline Wazuh ↔ sinkhole isolata;
+- `ENV-2026-06` — telemetria Windows + sinkhole + Wazuh;
+- `ENV-2026-07` — APPLIANCE-LAB auditd/FIM Whodata;
+- `ENV-2026-08` — retention finale multi-nodo, PASS;
+- `ENV-2026-09` — matrice formale 8 TP + 6 TN, 14/14 PASS.
 
-- rete host-only `lab-lan` su `10.10.10.0/24`;
-- SINKHOLE-LAB isolata;
-- snapshot `CLEAN-OS`.
+Evidenze:
 
-### ENV-2026-04 — SINKHOLE-READY
-
-- servizio HTTP benigno;
-- test 200/404/405;
-- JSONL e logrotate;
-- health check 16 PASS / 0 FAIL;
-- snapshot `SINKHOLE-READY`.
-
-### ENV-2026-05 — Pipeline Wazuh ↔ sinkhole isolata
-
-- WAZUH-LAB all-in-one;
-- agent Linux Active;
-- acquisizione JSONL;
-- regole `100100`–`100103`;
-- pipeline senza egress;
-- snapshot `WAZUH-PIPELINE-READY`.
-
-### ENV-2026-06 — Telemetria multi-sorgente isolata
-
-- WIN11-LAB con Sysmon, PowerShell 4104, Task Scheduler e Security 4698/4699;
-- dataset sintetico con integrità 27/27;
-- NTP interno `10.10.10.1`;
-- smoke test Windows → Wazuh e Windows → sinkhole senza NAT;
-- snapshot `WIN11-TELEMETRY-READY`, `WAZUH-TELEMETRY-READY` e `SINKHOLE-TELEMETRY-READY`.
-
-Evidenza: `evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`.
-
-### ENV-2026-07 — APPLIANCE-TELEMETRY-READY
-
-- APPLIANCE-LAB Ubuntu Server minimizzata su `10.10.10.50/24`;
-- baseline `CLEAN-OS`;
-- auditd e `audispd-plugins`;
-- Wazuh Agent `003` Active;
-- audit log raccolto e rule `80789` per `tio_appliance_exec`;
-- FIM realtime Whodata su `/opt/tio-appliance-lab/data`;
-- rules `554`, `550`, `553` per added/modified/deleted;
-- test negativo FIM fuori perimetro;
-- recovery SCA `35752` e `35754`;
-- NAT rimossa, zero default route, NTP interno;
-- test Audit/FIM completamente isolato;
-- snapshot `APPLIANCE-TELEMETRY-READY`.
-
-Evidenza: `evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md`.
+- `evidence/sanitized/ENV-2026-08-retention-baseline.md`;
+- `evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md`.
 
 ## Fase 0 — Governance del repository
 
@@ -84,99 +45,80 @@ Evidenza: `evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md`.
 - [ ] Compilare e archiviare la checklist di pubblicazione di prova.
 - [x] Definire che campioni e materiale contaminato non entrano nel repository pubblico.
 
-**Gate:** nessun dato reale, campione, payload o materiale contaminato entra nel repository.
-
 ## Fase 1 — Metodo analitico
 
 - [ ] Compilare Contesto, Catena, ATT&CK, Emulazione, Detection e Response.
 - [ ] Applicare confidence A/B/C.
 - [ ] Definire test positivo, test negativo, kill switch e cleanup.
-- [ ] Assegnare un Exercise ID e usare UTC.
+- [ ] Assegnare Exercise ID e usare UTC.
 - [ ] Distinguere comportamento documentato, emulato e osservato.
-
-**Gate:** scheda pre-lab revisionata.
 
 ## Fase 2 — Topologia e rete Track A
 
 ### Completato
 
-- [x] Installare e validare KVM/QEMU con libvirt.
-- [x] Creare rete host-only `10.10.10.0/24` senza forwarding.
-- [x] Preparare WIN11-LAB `10.10.10.20`.
-- [x] Preparare SINKHOLE-LAB `10.10.10.30`.
-- [x] Preparare WAZUH-LAB `10.10.10.40`.
-- [x] Preparare APPLIANCE-LAB `10.10.10.50`.
-- [x] Rimuovere NAT dai quattro nodi principali.
-- [x] Verificare assenza di default route.
-- [x] Configurare NTP interno `10.10.10.1`.
-- [x] Creare snapshot `*-TELEMETRY-READY` dei quattro nodi.
+- [x] KVM/QEMU con libvirt;
+- [x] rete host-only `10.10.10.0/24` senza forwarding;
+- [x] WIN11-LAB, SINKHOLE-LAB, WAZUH-LAB e APPLIANCE-LAB;
+- [x] NAT rimossa dai quattro nodi principali;
+- [x] assenza di default route;
+- [x] NTP interno `10.10.10.1`;
+- [x] snapshot `*-TELEMETRY-READY`.
 
 ### Da completare
 
-- [ ] Preparare ANALYST-LAB `10.10.10.60` solo se realmente necessaria.
-- [ ] Documentare l'inventario globale degli snapshot.
-- [ ] Ripetere health check e connettività dopo rollback coordinato.
-
-**Gate:** tutti i nodi principali sono isolati, ripristinabili e raggiungibili soltanto nella rete LAB.
+- [ ] ANALYST-LAB solo se realmente necessaria;
+- [ ] inventario globale degli snapshot;
+- [ ] health check e connettività dopo rollback coordinato.
 
 ## Fase 3 — Raccolta e baseline Track A
 
 ### Completato
 
-- [x] Sinkhole HTTP e JSONL.
-- [x] Wazuh all-in-one.
-- [x] Agent Linux e Windows.
-- [x] Sysmon Operational.
-- [x] PowerShell Script Block Logging 4104.
-- [x] Task Scheduler Operational.
-- [x] auditing Security 4698/4699.
-- [x] dataset sintetico e manifesto SHA-256.
-- [x] auditd su APPLIANCE-LAB.
-- [x] raccolta `audit.log` e mapping CDB della chiave execution.
-- [x] Wazuh FIM realtime Whodata.
-- [x] test positivi e negativi Windows e Linux.
-- [x] smoke test isolati e snapshot per singolo nodo.
+- [x] Sinkhole HTTP/JSONL;
+- [x] Wazuh all-in-one e agent Linux/Windows;
+- [x] Sysmon, PowerShell 4104, Task Scheduler, Security 4698/4699;
+- [x] dataset sintetico e manifesto;
+- [x] auditd su APPLIANCE-LAB;
+- [x] Wazuh FIM realtime Whodata;
+- [x] retention finale multi-nodo (`ENV-2026-08`);
+- [x] test positivi e negativi formali (`ENV-2026-09`).
 
 ### Da completare
 
-- [ ] Definire retention finale di laboratorio.
-- [ ] Eseguire smoke test coordinato dei quattro nodi.
-- [ ] Ripetere il test completo dopo rollback.
-- [ ] Creare snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
+- [ ] smoke test coordinato dei quattro nodi;
+- [ ] ripetizione completa dopo rollback;
+- [ ] snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
-**Gate:** eventi e campi necessari sono visibili nel dashboard e il test è ripetibile dopo rollback.
+## Fase 4 — Detection engineering Track A
 
-## Fase 4 — Nucleo detection engineering Track A
+### Completato
 
-### Completato per i checkpoint tecnici
-
-- [x] Regole sinkhole `100100`–`100103`.
-- [x] Marker PowerShell 4104 `109910`.
-- [x] Audit execute watch `80789` con `tio_appliance_exec`.
-- [x] FIM rules `550`, `553`, `554` in modalità Whodata.
-- [x] Test negativi selettivi Sysmon e FIM.
-- [x] Alert reali in CLI e dashboard.
+- [x] regole sinkhole `100100`–`100103`;
+- [x] marker PowerShell `109910`;
+- [x] Audit execute `80789` con `tio_appliance_exec`;
+- [x] FIM `550`, `553`, `554` Whodata;
+- [x] matrice formale multi-nodo: 8 TP + 6 TN, 14/14 PASS;
+- [x] cleanup FIM `deleted -> 553`;
+- [x] finding test-harness PowerShell documentato.
 
 ### Da completare
 
-- [ ] Pubblicare rule pack Windows dopo revisione dedicata.
-- [ ] Eseguire matrice TP1, TP2, TN1 e TN2 multi-nodo.
-- [ ] Aggiungere tuning per frequenza e contesto.
-- [ ] Misurare latency, coverage, precision, data quality e repeatability.
-- [ ] Ripetere dopo rollback e verificare cleanup.
-
-**Gate:** detection ripetibile, contestualizzata e misurata.
+- [ ] pubblicare rule pack Windows dopo revisione dedicata;
+- [ ] tuning per frequenza e contesto;
+- [ ] metriche di latency, coverage, precision e data quality;
+- [ ] repeatability dopo rollback.
 
 ## Gate globale Track A — LOGGING-READY
 
-Per sbloccare il primo caso devono essere completati:
+Per sbloccare il primo caso:
 
-- [ ] retention finale;
-- [ ] matrice TP/TN multi-nodo;
+- [x] retention finale;
+- [x] matrice TP/TN multi-nodo;
 - [ ] metriche di latency, coverage, precision e data quality;
 - [ ] smoke test coordinato;
 - [ ] rollback completo e ripetizione;
-- [ ] cleanup e controllo baseline;
+- [ ] cleanup e controllo baseline globali;
 - [ ] inventario globale degli snapshot;
 - [ ] snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
@@ -193,14 +135,12 @@ Dopo il gate globale viene completato un solo caso interamente benigno per valid
 - [ ] rollback e ripetizione;
 - [ ] finding, incident response e pubblicazione sanificata.
 
-Il primo caso funge da gate metodologico per la Track B.
-
 ## Track B — Malware analysis separata
 
 **Stato:** `PLANNED / BLOCKED`  
 **Metodo:** `docs/07-malware-analysis-track/README.md`
 
-### Gate di ingresso
+Gate di ingresso:
 
 - [ ] Track A a `LOGGING-READY`;
 - [ ] primo caso benigno completato end-to-end;
@@ -211,75 +151,17 @@ Il primo caso funge da gate metodologico per la Track B.
 - [ ] immagini golden e overlay sacrificabili;
 - [ ] condivisioni host, clipboard e drag-and-drop disabilitati.
 
-### Sequenza del primo confronto
-
-1. analisi statica del campione relativo al primo caso;
-2. valutazione motivata della necessità di analisi dinamica;
-3. dinamica soltanto se appropriata e autorizzata;
-4. confronto tra fonti, Track A e Track B;
-5. aggiornamento di detection, gap, tuning e report;
-6. distruzione o rollback dell'ambiente contaminato.
-
-### Vincoli
-
-- la Track B non usa `lab-lan`;
-- la Track B non usa WAZUH-LAB;
-- Track A e Track B non vengono eseguite contemporaneamente sullo stesso host;
-- campioni ad alto rischio possono essere limitati alla sola analisi statica o richiedere un host fisico dedicato;
-- nessun campione, payload o artefatto contaminato viene pubblicato.
-
-## Casi successivi — ciclo a due track
-
-Per ogni caso successivo:
-
-1. threat intelligence;
-2. emulazione benigna Track A;
-3. detection, TP/TN, cleanup e rollback;
-4. analisi statica Track B;
-5. dinamica opzionale e proporzionata;
-6. confronto documentato-vs-emulato-vs-osservato;
-7. tuning finale e report sanificato.
-
-Casi pianificati:
-
-- [ ] CaptiveCrunch / Storm-2945;
-- [ ] ACR Stealer Chain A e Chain B;
-- [ ] UNC1069 fake meeting e browser extension;
-- [ ] UNC3753 / Luna Moth;
-- [ ] BRICKSTORM appliance Linux/vSphere;
-- [ ] WinRAR CVE-2025-8088 ADS e Startup.
-
-La dinamica Track B non è obbligatoria per tutti i casi. La decisione dipende da rischio, valore didattico, provenienza e capacità di isolamento.
-
-## Fase 11 — Audit finale
-
-- [ ] Ripetere i test da snapshot.
-- [ ] Eseguire matrice TP1, TP2, TN1, TN2 e resilienza.
-- [ ] Verificare nessun artefatto residuo.
-- [ ] Rivedere i gap di visibilità dichiarati.
-- [ ] Verificare la separazione tra evidenze Track A e Track B.
-
-## Fase 12 — Pubblicazione portfolio
-
-- [ ] Rimuovere dati reali e metadati.
-- [ ] Sostituire identificatori con placeholder coerenti.
-- [ ] Calcolare SHA-256 delle copie sanificate.
-- [ ] Compilare manifest pubblico.
-- [ ] Escludere campioni, payload, archivi infetti e materiale contaminato.
-- [ ] Aprire pull request e completare publication gate.
-- [ ] Pubblicare solo dopo review.
+La dinamica Track B non è obbligatoria per tutti i casi. Campioni ad alto rischio possono essere limitati alla sola analisi statica o richiedere un host fisico dedicato.
 
 ## Sequenza operativa immediata
 
-1. definire retention finale;
-2. costruire matrice TP/TN multi-nodo;
-3. misurare latency, coverage, precision e data quality;
-4. eseguire smoke test coordinato dei quattro nodi;
-5. ripetere tutto dopo rollback;
-6. verificare cleanup e inventario snapshot;
-7. creare `LOGGING-READY` e `LOGGING-READY-LINUX`;
-8. completare il primo caso benigno end-to-end;
-9. costruire la Track B separata;
-10. ripetere il primo caso con analisi statica e dinamica solo se appropriata;
-11. confrontare e aggiornare le detection;
-12. proseguire con il ciclo a due track per i casi successivi.
+1. misurare latency, coverage, precision, data quality e repeatability;
+2. eseguire smoke test coordinato dei quattro nodi;
+3. ripetere i test dopo rollback;
+4. verificare cleanup e baseline globali;
+5. consolidare inventario snapshot;
+6. creare `LOGGING-READY` e `LOGGING-READY-LINUX`;
+7. completare il primo caso benigno end-to-end;
+8. costruire la Track B separata;
+9. ripetere il primo caso con analisi statica e dinamica solo se appropriata;
+10. confrontare e aggiornare le detection.
