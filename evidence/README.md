@@ -13,6 +13,8 @@ Questa cartella ospita esclusivamente copie `SANITIZED` o documentazione `PUBLIC
 | `ENV-2026-07` | STEP-02/03/04 parziale | [`sanitized/ENV-2026-07-appliance-telemetry-ready.md`](sanitized/ENV-2026-07-appliance-telemetry-ready.md) | PASS parziale | 2026-08-06 |
 | `ENV-2026-08` | STEP-03/04 | [`sanitized/ENV-2026-08-retention-baseline.md`](sanitized/ENV-2026-08-retention-baseline.md) | PASS | 2026-08-07 |
 | `ENV-2026-09` | STEP-04 | [`sanitized/ENV-2026-09-formal-tp-tn-matrix.md`](sanitized/ENV-2026-09-formal-tp-tn-matrix.md) | PASS | 2026-08-07 |
+| `ENV-2026-10` | STEP-11 | [`sanitized/ENV-2026-10-detection-metrics.md`](sanitized/ENV-2026-10-detection-metrics.md) | PASS | 2026-08-07 |
+| `ENV-2026-11` | STEP-02/04/11 | [`sanitized/ENV-2026-11-rollback-repeatability.md`](sanitized/ENV-2026-11-rollback-repeatability.md) | PASS | 2026-08-07 |
 
 ## Ambito dei checkpoint
 
@@ -23,8 +25,10 @@ Questa cartella ospita esclusivamente copie `SANITIZED` o documentazione `PUBLIC
 - `ENV-2026-07`: APPLIANCE-LAB, auditd, raccolta Audit, rule `80789`, FIM Whodata rules `550/553/554`, recovery SCA, isolamento e `APPLIANCE-TELEMETRY-READY`.
 - `ENV-2026-08`: retention finale per Wazuh, sinkhole, auditd e Windows Event Log.
 - `ENV-2026-09`: matrice formale multi-nodo con 8 TP, 6 TN e 14/14 PASS; cleanup FIM verificato separatamente.
+- `ENV-2026-10`: metriche del set controllato: scenario completion, TP/TN, precisione alert, latenza osservabile e completezza dei campi.
+- `ENV-2026-11`: baseline coordinata, rollback reale e repeatability 8/8 sul set rappresentativo multi-pipeline.
 
-`ENV-2026-09` non equivale ancora a `LOGGING-READY`: restano metriche formali, smoke test coordinato, ripetizione dopo rollback, verifica globale cleanup/baseline, inventario snapshot e snapshot coordinati finali.
+`ENV-2026-11` non equivale ancora a `LOGGING-READY`: restano cleanup/baseline globali, consolidamento finale dell'inventario snapshot e creazione degli snapshot coordinati finali.
 
 ## Convenzione
 
@@ -66,7 +70,7 @@ Ogni artefatto deve dichiarare:
 
 ## Gestione delle acquisizioni private
 
-I checkpoint usano pacchetti privati con manifesti SHA-256 verificati prima e dopo il trasferimento. `ENV-2026-09` conserva inoltre una matrice finale congelata e un manifesto finale verificato. Il repository pubblico registra soltanto l'esito e le informazioni necessarie a riprodurre il controllo, non:
+I checkpoint usano pacchetti privati con manifesti SHA-256 verificati prima e dopo il trasferimento. `ENV-2026-09`, `ENV-2026-10` e `ENV-2026-11` conservano inoltre dataset finali o riepiloghi congelati e manifesti finali verificati. Il repository pubblico registra soltanto l'esito e le informazioni necessarie a riprodurre il controllo, non:
 
 - inventari completi di processi, servizi e task;
 - EVTX, PCAP, immagini disco o snapshot;
@@ -81,9 +85,7 @@ Non pubblicare immagini disco, ISO, snapshot, dump di memoria, log raw non revis
 
 ## Prossime evidenze pianificate
 
-- metriche di latency, coverage, precision, data quality e repeatability;
-- smoke test coordinato dei quattro nodi;
-- ripetizione dopo rollback;
+- visualizzazioni sanificate derivate dalle metriche `ENV-2026-10/11`;
 - verifica globale cleanup e baseline;
-- inventario snapshot;
+- inventario snapshot finale;
 - snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
