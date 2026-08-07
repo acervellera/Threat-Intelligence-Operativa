@@ -1,8 +1,9 @@
 # 03 — Baseline di telemetria
 
 **Stato:** `IN PROGRESS`  
-**Checkpoint:** `ENV-2026-07 — APPLIANCE-LAB telemetry ready`  
-**Prossimo gate:** retention, matrice TP/TN, metriche e rollback coordinato
+**Checkpoint:** `ENV-2026-09 — matrice formale TP/TN multi-nodo`  
+**Retention finale:** `PASS`  
+**Prossimo gate:** metriche, smoke test coordinato e rollback
 
 ## Stato delle sorgenti
 
@@ -14,13 +15,15 @@
 | Wazuh Agent Windows | VALIDATED | agent `002` Active tramite `lab-lan` |
 | Wazuh Agent Linux appliance | VALIDATED | agent `003` Active tramite `lab-lan` |
 | Sysmon Windows | VALIDATED per baseline LAB | processi, file, rete, registro, ADS e DNS osservati |
-| PowerShell Operational | VALIDATED | Script Block Logging Event ID 4104 |
-| Task Scheduler Operational | VALIDATED | ciclo create/run/delete osservato |
-| Security 4698/4699 | PARTIAL VALIDATED | 4698 in Wazuh; 4699 verificato localmente |
-| auditd Linux appliance | VALIDATED | marker locale e alert rule `80789` |
-| Wazuh FIM appliance | VALIDATED | added/modified/deleted Whodata e test negativo |
+| PowerShell Operational | VALIDATED | Script Block Logging 4104; TP/TN formale completato |
+| Task Scheduler Operational | VALIDATED | create/delete correlati con Wazuh |
+| Security 4698 | VALIDATED | rule `60228` |
+| Security 4699 | OBSERVED / DISCOVERY | osservato localmente; alert Wazuh non osservato |
+| auditd Linux appliance | VALIDATED | `tio_appliance_exec -> 80789`, TP/TN completato |
+| Wazuh FIM appliance | VALIDATED | added/modified/deleted Whodata e TN fuori path |
+| retention | VALIDATED | `ENV-2026-08` |
 
-## Pipeline multi-sorgente validata
+## Pipeline multi-sorgente
 
 ```text
 WIN11-LAB
@@ -42,53 +45,13 @@ Wazuh Manager
   -> alerts.json -> Filebeat -> Indexer -> Dashboard
 ```
 
-WIN11-LAB, SINKHOLE-LAB, WAZUH-LAB e APPLIANCE-LAB sono collegate esclusivamente a `lab-lan`, senza default route durante i test finali.
+I quattro nodi principali sono collegati esclusivamente a `lab-lan` durante i test finali, senza default route.
 
 ## Sincronizzazione temporale
 
-L'host Ubuntu distribuisce NTP sulla rete LAB tramite `10.10.10.1:123/udp`.
+L'host Ubuntu distribuisce NTP sulla rete LAB tramite `10.10.10.1:123/udp`. WIN11-LAB usa W32Time; i nodi Linux usano il client temporale di sistema. I timestamp UTC dei quattro nodi sono stati verificati come coerenti.
 
-| Nodo | Client temporale | Sorgente |
-|---|---|---|
-| WIN11-LAB | `W32Time` | `10.10.10.1,0x8` |
-| SINKHOLE-LAB | `systemd-timesyncd` | `10.10.10.1` |
-| WAZUH-LAB | `systemd-timesyncd` | `10.10.10.1` |
-| APPLIANCE-LAB | `systemd-timesyncd` | `10.10.10.1` |
-
-I client `.20`, `.30`, `.40` e `.50` hanno mostrato timestamp UTC coerenti.
-
-## Sorgente sinkhole
-
-Percorso nella VM:
-
-```text
-/var/log/tio-sinkhole/requests.jsonl
-```
-
-Schema validato:
-
-| Campo | Tipo | Uso |
-|---|---|---|
-| `timestamp_utc` | stringa ISO 8601 | timeline e ordinamento |
-| `client_ip` | stringa IPv4 | nodo origine nella rete LAB |
-| `method` | stringa | GET, HEAD o metodo rifiutato |
-| `path` | stringa | endpoint richiesto |
-| `query` | stringa | query string limitata |
-| `user_agent` | stringa | client o identificatore del test |
-| `status` | numero | esito HTTP 200, 404 o 405 |
-
-Configurazioni:
-
-- [`../../configs/sinkhole/server.py`](../../configs/sinkhole/server.py)
-- [`../../configs/sinkhole/tio-sinkhole.service`](../../configs/sinkhole/tio-sinkhole.service)
-- [`../../configs/sinkhole/tio-sinkhole.logrotate`](../../configs/sinkhole/tio-sinkhole.logrotate)
-- [`../../configs/wazuh/linux-localfile/tio-sinkhole-jsonl.xml`](../../configs/wazuh/linux-localfile/tio-sinkhole-jsonl.xml)
-
-## Sorgenti Windows
-
-Frammenti pubblici:
-
-- [`../../configs/wazuh/windows-eventchannel/tio-windows-eventchannels.xml`](../../configs/wazuh/windows-eventchannel/tio-windows-eventchannels.xml)
+## Windows
 
 Canali acquisiti:
 
@@ -101,40 +64,47 @@ System
 Application
 ```
 
-### Sysmon
+### PowerShell
 
-Eventi osservati durante la validazione:
+Il marker benigno ha prodotto:
 
-| Event ID | Contesto |
-|---:|---|
-| `1` | process creation e command line |
-| `3` | connessione verso rete LAB |
-| `11` | file creation |
-| `13` | modifica registro |
-| `15` | alternate data stream / Zone.Identifier |
-| `22` | DNS query |
+```text
+PowerShell Event 4104 -> Wazuh rule 109910
+```
 
-Il filtro FileCreate è stato esteso a `C:\Lab\`. Un file sotto `C:\Lab\` ha prodotto un evento ID 11, mentre un file esterno ai path monitorati non lo ha prodotto.
+Il TN con un 4104 benigno senza marker ha prodotto `109910 = 0`.
 
-### PowerShell, Task Scheduler e Security
+Durante il TP, comandi diagnostici contenenti letteralmente il trigger hanno generato ulteriori 4104 e alert `109910`. Gli alert del test harness sono stati separati dall'evento intenzionale tramite Record ID / ScriptBlock ID e il metodo è stato corretto.
 
-- Script Block Logging Event ID `4104` osservato localmente e in Wazuh;
-- marker rilevato dalla rule `109910`;
-- task temporanea come `SYSTEM` correlata con Sysmon;
-- Security Event ID `4698`;
-- eliminazione e cleanup della task.
+### Scheduled Task e Security
 
-## Dataset sintetico Windows
+La creazione di una Scheduled Task benigna ha prodotto due viste indipendenti:
 
-| Indicatore | Valore |
-|---|---:|
-| file attesi | 27 |
-| file presenti | 27 |
-| file invariati | 27 |
-| modificati | 0 |
-| mancanti | 0 |
-| inattesi | 0 |
-| esito | PASS |
+```text
+TaskScheduler 106 -> Wazuh 67014
+Security 4698     -> Wazuh 60228
+```
+
+Il cleanup ha prodotto:
+
+```text
+TaskScheduler 141 -> Wazuh 67015
+Security 4699     -> osservato localmente
+```
+
+Non è stato osservato un alert Wazuh per il 4699. Con `logall/logall_json` disabilitati non è possibile dimostrare dal manager la persistenza del singolo evento non allertante.
+
+## Sinkhole
+
+Schema JSONL validato con timestamp, client IP, metodo, path, user-agent e status. La matrice formale ha verificato:
+
+| HTTP | Rule | Esito |
+|---|---:|---|
+| heartbeat 200 | `100101` | PASS |
+| unknown path 404 | `100102` | PASS |
+| POST / heartbeat 405 | `100103` | PASS |
+| heartbeat vs 404 | nessuna `100102` | PASS |
+| heartbeat vs 405 | nessuna `100103` | PASS |
 
 ## Auditd su APPLIANCE-LAB
 
@@ -146,42 +116,15 @@ audispd-plugins
 /var/log/audit/audit.log
 ```
 
-La baseline locale ha verificato servizio active/enabled, kernel audit attivo, `lost=0` e marker benigno ricercabile con `ausearch`.
-
-Regole pubbliche:
-
-- [`../../configs/auditd/70-tio-appliance.rules`](../../configs/auditd/70-tio-appliance.rules)
-- [`../../scripts/lab/tio-marker.sh`](../../scripts/lab/tio-marker.sh)
-
-Chiavi finali:
+La watch di esecuzione:
 
 ```text
-tio_appliance_exec
-tio_systemd_changes
+-w /opt/tio-appliance-lab/bin/tio-marker.sh -p x -k tio_appliance_exec
 ```
 
-La directory FIM non mantiene una watch TIO parallela: è gestita dalla watch dinamica `wazuh_fim`.
+ha prodotto un evento `execve success=yes` con chiave `tio_appliance_exec` e Wazuh rule `80789`. Il TN con attività benigna fuori dalla watch ha prodotto `80789 = 0`.
 
-## Audit execution in Wazuh
-
-Il manager usa il mapping:
-
-```text
-tio_appliance_exec:execute
-```
-
-Configurazione pubblica:
-
-- [`../../configs/wazuh/lists/tio-audit-keys.txt`](../../configs/wazuh/lists/tio-audit-keys.txt)
-
-L'esecuzione dello script benigno ha prodotto la rule `80789` con:
-
-- `success=yes`;
-- chiave `tio_appliance_exec`;
-- comando ed executable;
-- `auid` e `uid` dell'utente sintetico;
-- working directory;
-- argomento marker.
+Il mapping manager è pubblicato in `configs/wazuh/lists/tio-audit-keys.txt`.
 
 ## Wazuh FIM Whodata
 
@@ -191,11 +134,7 @@ Percorso monitorato:
 /opt/tio-appliance-lab/data
 ```
 
-Configurazione pubblica:
-
-- [`../../configs/wazuh/linux-fim/tio-appliance-fim.xml`](../../configs/wazuh/linux-fim/tio-appliance-fim.xml)
-
-Opzioni:
+Configurazione:
 
 ```text
 check_all=yes
@@ -204,115 +143,52 @@ whodata=yes
 report_changes=yes
 ```
 
-Ciclo validato:
+Ciclo formale:
 
-| Operazione | Rule | Evento | Modalità |
+| Operazione | Rule | Evento | Esito |
 |---|---:|---|---|
-| creazione | `554` | `added` | `whodata` |
-| modifica contenuto | `550` | `modified` | `whodata` |
-| modifica permessi | `550` | `modified` | `whodata` |
-| cancellazione | `553` | `deleted` | `whodata` |
+| creazione | `554` | `added` | PASS |
+| modifica contenuto | `550` | `modified` | PASS |
+| file fuori path | nessuna target | TN | PASS |
+| cleanup | `553` | `deleted` | PASS |
 
-Tutti i record hanno incluso attribuzione utente/processo. Un file sotto `/var/tmp` ha prodotto zero alert FIM TIO.
+Whodata ha incluso utente e processo; la modifica ha esposto SHA-256 precedente e successivo.
 
-### Correzione del conflitto di watch
+## Retention finale — ENV-2026-08
 
-La prima configurazione applicava sullo stesso percorso:
+- WAZUH-LAB: alert rotation verificata, `logall=no`, `logall_json=no`;
+- SINKHOLE-LAB: logrotate giornaliero, 14 rotazioni, maxsize 10 MiB, compressione;
+- APPLIANCE-LAB: auditd con `max_log_file=8 MiB`, `num_logs=5` e rotazione;
+- WIN11-LAB: Security/Sysmon 128 MiB, PowerShell 64 MiB, TaskScheduler/System 32 MiB, modalità circolare.
 
-```text
-tio_appliance_files
-wazuh_fim
-```
+Dettaglio pubblico: `../../evidence/sanitized/ENV-2026-08-retention-baseline.md`.
 
-Gli eventi venivano associati alla watch personalizzata e il flusso Whodata non completava la classificazione FIM. La watch `tio_appliance_files` è stata rimossa, le regole sono state ricaricate e il ciclo è stato ripetuto con la sola watch dinamica `wazuh_fim`.
+## Matrice formale — ENV-2026-09
 
-## SCA del plugin Audit Wazuh
+La matrice contiene 14 test, 8 TP e 6 TN, tutti PASS. Le raw evidence sono conservate privatamente per sorgente; la matrice finale è stata congelata e il manifesto SHA-256 finale verificato.
 
-L'attivazione Whodata ha generato `af_wazuh.conf`. I controlli CIS:
+Dettaglio pubblico: `../../evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md`.
 
-- `35752` — modalità file Audit;
-- `35754` — gruppo file Audit;
+## Gap dichiarati
 
-sono inizialmente passati da passed a failed. Il file è stato corretto a:
-
-```text
-mode=0640 owner=root group=root
-```
-
-Dopo il restart dell'agent la configurazione è rimasta stabile e una nuova scansione SCA ha registrato `failed -> passed` tramite rule `19010`.
-
-## Smoke test NAT-less
-
-### Windows + sinkhole
-
-| Sorgente | Event ID / rule | Risultato |
-|---|---|---|
-| Sysmon | `1` / `92004` | processo con marker finale |
-| PowerShell | `4104` / `109910` | marker Script Block Logging |
-| Task Scheduler | `106` / `67014` | task registrata |
-| Security | `4698` / `60228` | task creata |
-| Task Scheduler | `141` / `67015` | task eliminata |
-| Sinkhole | HTTP 404 / `100102` | `/final-natless-check` da `10.10.10.20` |
-
-### Appliance
-
-Dopo la rimozione della NIC NAT:
-
-- sola `lab-lan` su `10.10.10.50/24`;
-- default route assente;
-- Internet non raggiungibile;
-- NTP `10.10.10.1` sincronizzato;
-- agent `003` Active;
-- nuovo alert Audit `80789`;
-- nuovo ciclo FIM `550/553/554` in modalità Whodata;
-- test negativo FIM con zero alert.
-
-## Baseline e snapshot
-
-Sono stati creati pacchetti privati con manifesti SHA-256 e snapshot a VM spenta:
-
-- `WIN11-TELEMETRY-READY`;
-- `WAZUH-TELEMETRY-READY`;
-- `SINKHOLE-TELEMETRY-READY`;
-- `APPLIANCE-TELEMETRY-READY`.
-
-Nel repository pubblico restano soltanto evidenze sanificate e configurazioni ridotte.
-
-## Controlli completati
-
-- parsing JSON sinkhole;
-- acquisizione EventChannel Windows;
-- raccolta Audit Linux;
-- FIM realtime Whodata;
-- timestamp UTC coerenti sui quattro nodi;
-- test positivi e negativi Windows e Linux;
-- dataset sintetico e integrità baseline;
-- rimozione NAT e zero default route;
-- visualizzazione alert nel manager e dashboard;
-- cleanup degli artefatti temporanei;
-- snapshot per singolo nodo.
+- il sinkhole registra richieste HTTP, non l'intento del processo;
+- Sysmon e FIM non equivalgono a una registrazione completa di tutte le operazioni;
+- `109910`, `80789` e le regole sinkhole sono controlli LAB, non detection di produzione;
+- con `logall/logall_json` disabilitati, un evento non allertante può non essere persistito nel manager;
+- metriche formali e repeatability dopo rollback restano da completare.
 
 ## Cosa manca per LOGGING-READY
 
-1. retention finale;
-2. matrice formale TP/TN completa;
-3. metriche di latency, coverage, precision e data quality;
-4. smoke test coordinato dei quattro nodi;
-5. ripetizione completa dopo rollback;
-6. verifica globale del cleanup;
-7. snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
+1. metriche di latency, coverage, precision, data quality e repeatability;
+2. smoke test coordinato dei quattro nodi;
+3. ripetizione completa dopo rollback;
+4. verifica globale cleanup e baseline;
+5. inventario snapshot;
+6. snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
-## Gap da dichiarare
+## Evidenze
 
-- il sinkhole registra richieste HTTP, non l'intento del processo;
-- l'indirizzo IP identifica il nodo, non necessariamente l'utente;
-- marker, 404, 405 e singole modifiche FIM non dimostrano da soli attività malevola;
-- Sysmon non vede tutte le letture di file sensibili;
-- FIM rileva il cambiamento, ma non sostituisce la telemetria completa di processo e rete;
-- la regola `109910` e la rule Audit usata nel checkpoint validano la pipeline, non costituiscono detection di produzione;
-- retention, metriche e rollback globale restano da completare.
-
-Evidenze:
-
-- [`../../evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`](../../evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md)
-- [`../../evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md`](../../evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md)
+- `../../evidence/sanitized/ENV-2026-06-multisource-telemetry-ready.md`
+- `../../evidence/sanitized/ENV-2026-07-appliance-telemetry-ready.md`
+- `../../evidence/sanitized/ENV-2026-08-retention-baseline.md`
+- `../../evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md`
