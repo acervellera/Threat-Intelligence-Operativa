@@ -15,9 +15,9 @@ La Track B viene costruita soltanto dopo `LOGGING-READY` e dopo il completamento
 |---|---|---|---|
 | Fase 0 — Governance | IN PROGRESS | storage privato e `.gitignore` verificati | publication checklist di prova |
 | Fase 1 — Metodo analitico | NOT STARTED | - | compilare scheda A/B/C |
-| Fase 2 — Topologia e rete Track A | IN PROGRESS | `ENV-2026-03`…`ENV-2026-09` | rollback globale e inventario snapshot |
-| Fase 3 — Raccolta e baseline Track A | IN PROGRESS | telemetria multi-sorgente + `ENV-2026-08` retention | smoke test coordinato e rollback |
-| Fase 4 — Detection engineering Track A | IN PROGRESS | `ENV-2026-09` matrice 14/14 PASS | metriche e repeatability |
+| Fase 2 — Topologia e rete Track A | IN PROGRESS | `ENV-2026-03`…`ENV-2026-11` | cleanup globale e inventario snapshot finale |
+| Fase 3 — Raccolta e baseline Track A | IN PROGRESS | retention + rollback coordinato | cleanup/baseline e snapshot finali |
+| Fase 4 — Detection engineering Track A | IN PROGRESS | TP/TN + metriche + repeatability PASS | snapshot finali `LOGGING-READY` |
 | Primo caso Track A | BLOCKED | - | attendere `LOGGING-READY` |
 | Track B — Malware analysis | PLANNED / BLOCKED | metodologia pubblica definita | attendere primo caso Track A completo |
 | Casi successivi a due track | BLOCKED | - | attendere validazione Track B |
@@ -30,12 +30,16 @@ La Track B viene costruita soltanto dopo `LOGGING-READY` e dopo il completamento
 - `ENV-2026-06` — telemetria Windows + sinkhole + Wazuh;
 - `ENV-2026-07` — APPLIANCE-LAB auditd/FIM Whodata;
 - `ENV-2026-08` — retention finale multi-nodo, PASS;
-- `ENV-2026-09` — matrice formale 8 TP + 6 TN, 14/14 PASS.
+- `ENV-2026-09` — matrice formale 8 TP + 6 TN, 14/14 PASS;
+- `ENV-2026-10` — metriche di detection e qualità dei dati, PASS;
+- `ENV-2026-11` — rollback coordinato e repeatability rappresentativa 8/8, PASS.
 
 Evidenze:
 
 - `evidence/sanitized/ENV-2026-08-retention-baseline.md`;
-- `evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md`.
+- `evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md`;
+- `evidence/sanitized/ENV-2026-10-detection-metrics.md`;
+- `evidence/sanitized/ENV-2026-11-rollback-repeatability.md`.
 
 ## Fase 0 — Governance del repository
 
@@ -63,13 +67,15 @@ Evidenze:
 - [x] NAT rimossa dai quattro nodi principali;
 - [x] assenza di default route;
 - [x] NTP interno `10.10.10.1`;
-- [x] snapshot `*-TELEMETRY-READY`.
+- [x] snapshot `*-TELEMETRY-READY`;
+- [x] baseline coordinata `ENV-2026-11-BASELINE`;
+- [x] health check e connettività dopo rollback coordinato.
 
 ### Da completare
 
 - [ ] ANALYST-LAB solo se realmente necessaria;
-- [ ] inventario globale degli snapshot;
-- [ ] health check e connettività dopo rollback coordinato.
+- [ ] consolidamento finale dell'inventario snapshot;
+- [ ] snapshot finali del gate Track A.
 
 ## Fase 3 — Raccolta e baseline Track A
 
@@ -82,12 +88,13 @@ Evidenze:
 - [x] auditd su APPLIANCE-LAB;
 - [x] Wazuh FIM realtime Whodata;
 - [x] retention finale multi-nodo (`ENV-2026-08`);
-- [x] test positivi e negativi formali (`ENV-2026-09`).
+- [x] test positivi e negativi formali (`ENV-2026-09`);
+- [x] rollback coordinato con verifica di stato (`ENV-2026-11`);
+- [x] repeatability 8/8 sul set rappresentativo multi-pipeline (`ENV-2026-11`).
 
 ### Da completare
 
-- [ ] smoke test coordinato dei quattro nodi;
-- [ ] ripetizione completa dopo rollback;
+- [ ] verifica globale cleanup e baseline;
 - [ ] snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
 ## Fase 4 — Detection engineering Track A
@@ -100,14 +107,15 @@ Evidenze:
 - [x] FIM `550`, `553`, `554` Whodata;
 - [x] matrice formale multi-nodo: 8 TP + 6 TN, 14/14 PASS;
 - [x] cleanup FIM `deleted -> 553`;
-- [x] finding test-harness PowerShell documentato.
+- [x] finding test-harness PowerShell documentato;
+- [x] metriche di scenario, precisione, latenza osservabile e data quality (`ENV-2026-10`);
+- [x] repeatability dopo rollback su set rappresentativo (`ENV-2026-11`).
 
 ### Da completare
 
 - [ ] pubblicare rule pack Windows dopo revisione dedicata;
 - [ ] tuning per frequenza e contesto;
-- [ ] metriche di latency, coverage, precision e data quality;
-- [ ] repeatability dopo rollback.
+- [ ] snapshot finali del gate Track A.
 
 ## Gate globale Track A — LOGGING-READY
 
@@ -115,11 +123,11 @@ Per sbloccare il primo caso:
 
 - [x] retention finale;
 - [x] matrice TP/TN multi-nodo;
-- [ ] metriche di latency, coverage, precision e data quality;
-- [ ] smoke test coordinato;
-- [ ] rollback completo e ripetizione;
+- [x] metriche di scenario, precisione, latenza osservabile e data quality;
+- [x] smoke test coordinato rappresentativo dei quattro nodi;
+- [x] rollback completo delle quattro VM e repeatability sul set rappresentativo;
 - [ ] cleanup e controllo baseline globali;
-- [ ] inventario globale degli snapshot;
+- [ ] inventario snapshot finale;
 - [ ] snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
 ## Primo caso Track A
@@ -155,13 +163,10 @@ La dinamica Track B non è obbligatoria per tutti i casi. Campioni ad alto risch
 
 ## Sequenza operativa immediata
 
-1. misurare latency, coverage, precision, data quality e repeatability;
-2. eseguire smoke test coordinato dei quattro nodi;
-3. ripetere i test dopo rollback;
-4. verificare cleanup e baseline globali;
-5. consolidare inventario snapshot;
-6. creare `LOGGING-READY` e `LOGGING-READY-LINUX`;
-7. completare il primo caso benigno end-to-end;
-8. costruire la Track B separata;
-9. ripetere il primo caso con analisi statica e dinamica solo se appropriata;
-10. confrontare e aggiornare le detection.
+1. verificare cleanup e baseline globali;
+2. consolidare l'inventario snapshot;
+3. creare `LOGGING-READY` e `LOGGING-READY-LINUX`;
+4. completare il primo caso benigno end-to-end;
+5. costruire la Track B separata;
+6. ripetere il primo caso con analisi statica e dinamica solo se appropriata;
+7. confrontare e aggiornare le detection.
