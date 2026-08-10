@@ -13,13 +13,13 @@ La Track B viene costruita soltanto dopo `LOGGING-READY` e dopo il completamento
 
 | Fase | Stato | Evidenza principale | Prossima azione |
 |---|---|---|---|
-| Fase 0 — Governance | IN PROGRESS | storage privato e `.gitignore` verificati | publication checklist di prova |
-| Fase 1 — Metodo analitico | NOT STARTED | - | compilare scheda A/B/C |
-| Fase 2 — Topologia e rete Track A | IN PROGRESS | `ENV-2026-03`…`ENV-2026-11` | cleanup globale e inventario snapshot finale |
-| Fase 3 — Raccolta e baseline Track A | IN PROGRESS | retention + rollback coordinato | cleanup/baseline e snapshot finali |
-| Fase 4 — Detection engineering Track A | IN PROGRESS | TP/TN + metriche + repeatability PASS | snapshot finali `LOGGING-READY` |
-| Primo caso Track A | BLOCKED | - | attendere `LOGGING-READY` |
-| Track B — Malware analysis | PLANNED / BLOCKED | metodologia pubblica definita | attendere primo caso Track A completo |
+| Fase 0 — Governance | IN PROGRESS | storage privato e policy di sanificazione | publication checklist CASE-01 |
+| Fase 1 — Metodo analitico | NEXT | da applicare a CASE-01 | fonti + confidence A/B/C |
+| Fase 2 — Topologia e rete Track A | VALIDATED | `ENV-2026-03`…`ENV-2026-13` | usare baseline finale |
+| Fase 3 — Raccolta e baseline Track A | VALIDATED | retention, rollback, cleanup, snapshot finali | supportare CASE-01 |
+| Fase 4 — Detection engineering Track A | VALIDATED per gate infrastrutturale | TP/TN + metriche + repeatability | detection del primo caso |
+| Primo caso Track A | READY / NEXT | issue #6 | threat-intelligence brief e piano benigno |
+| Track B — Malware analysis | PLANNED / BLOCKED | metodologia pubblica definita | attendere CASE-01 completo |
 | Casi successivi a due track | BLOCKED | - | attendere validazione Track B |
 
 ## Checkpoint verificati
@@ -32,30 +32,27 @@ La Track B viene costruita soltanto dopo `LOGGING-READY` e dopo il completamento
 - `ENV-2026-08` — retention finale multi-nodo, PASS;
 - `ENV-2026-09` — matrice formale 8 TP + 6 TN, 14/14 PASS;
 - `ENV-2026-10` — metriche di detection e qualità dei dati, PASS;
-- `ENV-2026-11` — rollback coordinato e repeatability rappresentativa 8/8, PASS.
-
-Evidenze:
-
-- `evidence/sanitized/ENV-2026-08-retention-baseline.md`;
-- `evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md`;
-- `evidence/sanitized/ENV-2026-10-detection-metrics.md`;
-- `evidence/sanitized/ENV-2026-11-rollback-repeatability.md`.
+- `ENV-2026-11` — rollback coordinato e repeatability rappresentativa 8/8, PASS;
+- `ENV-2026-12` — cleanup globale e health check finale, PASS;
+- `ENV-2026-13` — inventario snapshot finale e `LOGGING-READY`, PASS.
 
 ## Fase 0 — Governance del repository
 
 - [x] Leggere `SECURITY.md`.
 - [x] Definire storage privato per raw evidence.
 - [x] Adottare classificazione `PUBLIC`, `SANITIZED`, `PRIVATE`.
-- [ ] Compilare e archiviare la checklist di pubblicazione di prova.
+- [ ] Compilare e archiviare la checklist di pubblicazione del primo caso.
 - [x] Definire che campioni e materiale contaminato non entrano nel repository pubblico.
 
 ## Fase 1 — Metodo analitico
 
-- [ ] Compilare Contesto, Catena, ATT&CK, Emulazione, Detection e Response.
-- [ ] Applicare confidence A/B/C.
-- [ ] Definire test positivo, test negativo, kill switch e cleanup.
-- [ ] Assegnare Exercise ID e usare UTC.
-- [ ] Distinguere comportamento documentato, emulato e osservato.
+Da applicare ora a CASE-01:
+
+- [ ] compilare Contesto, Catena, ATT&CK, Emulazione, Detection e Response;
+- [ ] applicare confidence A/B/C;
+- [ ] definire test positivo, test negativo, kill switch e cleanup;
+- [ ] assegnare Case ID e usare UTC;
+- [ ] distinguere comportamento documentato, emulato e osservato.
 
 ## Fase 2 — Topologia e rete Track A
 
@@ -69,13 +66,12 @@ Evidenze:
 - [x] NTP interno `10.10.10.1`;
 - [x] snapshot `*-TELEMETRY-READY`;
 - [x] baseline coordinata `ENV-2026-11-BASELINE`;
-- [x] health check e connettività dopo rollback coordinato.
+- [x] health check e connettività dopo rollback;
+- [x] cleanup globale;
+- [x] inventario snapshot finale;
+- [x] `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
-### Da completare
-
-- [ ] ANALYST-LAB solo se realmente necessaria;
-- [ ] consolidamento finale dell'inventario snapshot;
-- [ ] snapshot finali del gate Track A.
+**Stato:** `VALIDATED`.
 
 ## Fase 3 — Raccolta e baseline Track A
 
@@ -89,17 +85,16 @@ Evidenze:
 - [x] Wazuh FIM realtime Whodata;
 - [x] retention finale multi-nodo (`ENV-2026-08`);
 - [x] test positivi e negativi formali (`ENV-2026-09`);
-- [x] rollback coordinato con verifica di stato (`ENV-2026-11`);
-- [x] repeatability 8/8 sul set rappresentativo multi-pipeline (`ENV-2026-11`).
+- [x] rollback coordinato (`ENV-2026-11`);
+- [x] repeatability 8/8 sul set rappresentativo (`ENV-2026-11`);
+- [x] cleanup globale e health check (`ENV-2026-12`);
+- [x] snapshot finali (`ENV-2026-13`).
 
-### Da completare
-
-- [ ] verifica globale cleanup e baseline;
-- [ ] snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
+**Stato:** `VALIDATED`.
 
 ## Fase 4 — Detection engineering Track A
 
-### Completato
+### Gate infrastrutturale completato
 
 - [x] regole sinkhole `100100`–`100103`;
 - [x] marker PowerShell `109910`;
@@ -109,48 +104,59 @@ Evidenze:
 - [x] cleanup FIM `deleted -> 553`;
 - [x] finding test-harness PowerShell documentato;
 - [x] metriche di scenario, precisione, latenza osservabile e data quality (`ENV-2026-10`);
-- [x] repeatability dopo rollback su set rappresentativo (`ENV-2026-11`).
+- [x] repeatability dopo rollback (`ENV-2026-11`);
+- [x] baseline finale `LOGGING-READY` (`ENV-2026-13`).
 
-### Da completare
+### Lavoro futuro legato ai casi
 
+- [ ] detection e tuning specifici di CASE-01;
 - [ ] pubblicare rule pack Windows dopo revisione dedicata;
-- [ ] tuning per frequenza e contesto;
-- [ ] snapshot finali del gate Track A.
+- [ ] tuning per frequenza e contesto derivato dai casi.
 
 ## Gate globale Track A — LOGGING-READY
-
-Per sbloccare il primo caso:
 
 - [x] retention finale;
 - [x] matrice TP/TN multi-nodo;
 - [x] metriche di scenario, precisione, latenza osservabile e data quality;
 - [x] smoke test coordinato rappresentativo dei quattro nodi;
 - [x] rollback completo delle quattro VM e repeatability sul set rappresentativo;
-- [ ] cleanup e controllo baseline globali;
-- [ ] inventario snapshot finale;
-- [ ] snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
+- [x] cleanup e controllo baseline globali;
+- [x] inventario snapshot finale;
+- [x] snapshot `LOGGING-READY` e `LOGGING-READY-LINUX`.
 
-## Primo caso Track A
+**Gate:** `PASS`.
 
-Dopo il gate globale viene completato un solo caso interamente benigno per validare l'intero processo:
+## Primo caso Track A — CASE-01
 
-- [ ] threat intelligence e confidence A/B/C;
-- [ ] emulazione con dati sintetici;
-- [ ] test positivo e negativo;
-- [ ] detection e tuning;
-- [ ] timeline UTC ed evidenze E-001…E-006;
-- [ ] cleanup;
-- [ ] rollback e ripetizione;
-- [ ] finding, incident response e pubblicazione sanificata.
+**Stato:** `READY / NEXT`  
+**Caso:** CaptiveCrunch / Storm-2945  
+**Issue:** #6
+
+Sequenza:
+
+1. [ ] raccogliere e verificare le fonti primarie/affidabili;
+2. [ ] compilare threat-intelligence brief;
+3. [ ] distinguere fatti documentati, inferenze e ipotesi;
+4. [ ] assegnare confidence A/B/C;
+5. [ ] costruire mapping MITRE ATT&CK;
+6. [ ] definire emulazione esclusivamente benigna e limiti;
+7. [ ] definire telemetria attesa e detection;
+8. [ ] eseguire TP/TN;
+9. [ ] produrre timeline UTC ed evidenze E-001…E-006;
+10. [ ] eseguire cleanup;
+11. [ ] rollback alla baseline finale e ripetizione;
+12. [ ] produrre finding, incident response e pubblicazione sanificata.
+
+Limiti già stabiliti per CASE-01: nessun device code reale, cookie theft, UAC bypass o AMSI tampering.
 
 ## Track B — Malware analysis separata
 
 **Stato:** `PLANNED / BLOCKED`  
 **Metodo:** `docs/07-malware-analysis-track/README.md`
 
-Gate di ingresso:
+Gate di ingresso rimanente:
 
-- [ ] Track A a `LOGGING-READY`;
+- [x] Track A a `LOGGING-READY`;
 - [ ] primo caso benigno completato end-to-end;
 - [ ] storage privato per campioni ed evidenze contaminate;
 - [ ] checklist di rischio, kill switch e destruction record;
@@ -163,10 +169,10 @@ La dinamica Track B non è obbligatoria per tutti i casi. Campioni ad alto risch
 
 ## Sequenza operativa immediata
 
-1. verificare cleanup e baseline globali;
-2. consolidare l'inventario snapshot;
-3. creare `LOGGING-READY` e `LOGGING-READY-LINUX`;
-4. completare il primo caso benigno end-to-end;
-5. costruire la Track B separata;
-6. ripetere il primo caso con analisi statica e dinamica solo se appropriata;
-7. confrontare e aggiornare le detection.
+1. avviare CASE-01 dalla baseline `LOGGING-READY`;
+2. completare fonti, confidence A/B/C e mapping ATT&CK;
+3. progettare ed eseguire l'emulazione benigna;
+4. completare detection, TP/TN, evidenze, cleanup e rollback;
+5. pubblicare CASE-01 sanificato;
+6. solo allora costruire la Track B separata;
+7. confrontare comportamento documentato, emulato e osservato.
