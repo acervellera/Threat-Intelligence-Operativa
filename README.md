@@ -6,17 +6,18 @@ Percorso pubblico e progressivo per trasformare fonti di threat intelligence in 
 
 ## Stato corrente
 
-**Fase primaria attiva:** `STEP-02 — Rete e VM`  
-**Attività parallele:** `STEP-03 — Baseline telemetria`, `STEP-04 — Detection engineering`, `STEP-11 — Test matrix e metriche`  
-**Checkpoint più recente:** `ENV-2026-11 — rollback coordinato e ripetibilità`  
+**Gate infrastrutturale Track A:** `LOGGING-READY — PASS`  
+**Checkpoint più recente:** `ENV-2026-13 — snapshot finali LOGGING-READY`  
 **Retention finale:** `PASS`  
 **Matrice TP/TN:** `14/14 PASS`  
 **Metriche formali:** `PASS`  
 **Repeatability rappresentativa:** `8/8 PASS dopo rollback`  
-**Quattro nodi principali:** `TELEMETRY-READY per nodo`  
-**Snapshot globale LOGGING-READY:** `NOT READY`  
-**Track B malware analysis:** `PLANNED / BLOCKED`  
-**Data:** `2026-08-07 UTC`
+**Cleanup globale:** `PASS`  
+**WIN11-LAB:** `LOGGING-READY`  
+**Nodi Linux:** `LOGGING-READY-LINUX`  
+**CASE-01:** `READY / NEXT`  
+**Track B malware analysis:** `PLANNED / BLOCKED` fino al completamento del primo caso Track A  
+**Data:** `2026-08-10 UTC`
 
 Completato e verificato:
 
@@ -33,8 +34,9 @@ Completato e verificato:
 - matrice formale 8 TP + 6 TN, 14/14 PASS (`ENV-2026-09`);
 - metriche di scenario, precisione alert, latenza osservabile e qualità dei dati (`ENV-2026-10`);
 - baseline coordinata, rollback reale e repeatability 8/8 sul set rappresentativo (`ENV-2026-11`);
-- cleanup FIM `deleted -> 553` verificato;
-- evidenze private centralizzate con manifesti SHA-256 verificati.
+- cleanup globale e health check finale (`ENV-2026-12`);
+- inventario snapshot finale e baseline `LOGGING-READY` / `LOGGING-READY-LINUX` (`ENV-2026-13`);
+- evidenze private congelate con manifesti SHA-256 verificati.
 
 Riferimenti principali:
 
@@ -42,21 +44,35 @@ Riferimenti principali:
 - [ENV-2026-09 — matrice formale TP/TN](evidence/sanitized/ENV-2026-09-formal-tp-tn-matrix.md);
 - [ENV-2026-10 — metriche di detection](evidence/sanitized/ENV-2026-10-detection-metrics.md);
 - [ENV-2026-11 — rollback e ripetibilità](evidence/sanitized/ENV-2026-11-rollback-repeatability.md);
+- [ENV-2026-12 — cleanup globale](evidence/sanitized/ENV-2026-12-cleanup-baseline.md);
+- [ENV-2026-13 — LOGGING-READY](evidence/sanitized/ENV-2026-13-logging-ready.md);
 - [baseline telemetria](docs/03-telemetry-baseline/README.md);
 - [detection engineering](docs/04-detection-engineering/README.md);
 - [stato complessivo](PROGRESS.md);
 - [roadmap](ROADMAP.md);
 - [Track B — malware analysis separata](docs/07-malware-analysis-track/README.md).
 
-## Perché non è ancora LOGGING-READY
+## Gate LOGGING-READY
 
-Retention, matrice TP/TN, metriche e repeatability rappresentativa dopo rollback sono chiuse. Il gate globale richiede ancora:
+Il gate infrastrutturale Track A è chiuso. La catena di validazione comprende:
 
-- verifica globale cleanup e baseline;
-- consolidamento finale dell'inventario snapshot;
-- snapshot coordinati `LOGGING-READY` e `LOGGING-READY-LINUX`.
+```text
+TELEMETRY-READY
+      ↓
+retention
+      ↓
+TP/TN formali
+      ↓
+metriche
+      ↓
+rollback + repeatability
+      ↓
+cleanup globale
+      ↓
+LOGGING-READY
+```
 
-Le campagne rimangono intenzionalmente bloccate fino al superamento di questo gate.
+`LOGGING-READY` non significa copertura universale ATT&CK o equivalenza con un SOC di produzione. Significa che questa infrastruttura di laboratorio dispone di una baseline finale ripristinabile e verificata per iniziare il primo caso benigno end-to-end.
 
 ## Checkpoint disponibili
 
@@ -71,10 +87,12 @@ Le campagne rimangono intenzionalmente bloccate fino al superamento di questo ga
 | `ENV-2026-09` | matrice formale TP/TN multi-nodo | PASS |
 | `ENV-2026-10` | metriche di detection e qualità dei dati | PASS |
 | `ENV-2026-11` | rollback coordinato e repeatability rappresentativa | PASS |
+| `ENV-2026-12` | cleanup globale e health check finale | PASS |
+| `ENV-2026-13` | snapshot finali `LOGGING-READY` | PASS |
 
 ## Risultati quantitativi
 
-`ENV-2026-10` misura esclusivamente il set controllato del laboratorio.
+`ENV-2026-10/11` misura esclusivamente il set controllato del laboratorio.
 
 | Metrica | Risultato |
 |---|---:|
@@ -89,53 +107,39 @@ Le campagne rimangono intenzionalmente bloccate fino al superamento di questo ga
 
 I valori al 100% non equivalgono a copertura MITRE ATT&CK, precisione di produzione o prestazioni universali di Wazuh. La precisione grezza conserva tre artefatti noti del test harness PowerShell; i due scenari FIM non sono inclusi nelle statistiche di latenza perché non disponevano di una coppia di timestamp sorgente/alert sufficientemente omogenea.
 
-## Risultato ENV-2026-09
-
-La matrice formale contiene 14 test: 8 true positive e 6 true negative.
-
-| Area | Validazione |
-|---|---|
-| Windows PowerShell | `4104 -> 109910` positivo e negativo selettivo |
-| Windows Scheduled Task | `106 -> 67014`, `4698 -> 60228`, cleanup `141 -> 67015` |
-| Sinkhole | 200/404/405 con `100101/100102/100103` e TN selettivi |
-| Audit Linux | `tio_appliance_exec -> 80789` e TN fuori watch |
-| FIM Linux | `added -> 554`, `modified -> 550`, TN fuori path, cleanup `deleted -> 553` |
-
-Un finding metodologico importante riguarda PowerShell: i comandi diagnostici contenenti letteralmente il trigger possono essere registrati a loro volta come 4104 e generare alert del test harness. Gli artefatti sono stati separati dall'evento intenzionale e il metodo di verifica è stato corretto. `ENV-2026-11` ha inoltre introdotto protezioni esplicite contro marker vuoti nei verificatori di repeatability.
-
 ## Topologia Track A
 
-| Nodo | Indirizzo | Ruolo | Stato |
+| Nodo | Indirizzo | Ruolo | Baseline finale |
 |---|---|---|---|
 | Host Ubuntu / bridge libvirt | `10.10.10.1` | gestione locale e NTP interno | VALIDATED |
-| WIN11-LAB | `10.10.10.20` | Sysmon, PowerShell, Task Scheduler, Wazuh Agent | `WIN11-TELEMETRY-READY` |
-| SINKHOLE-LAB | `10.10.10.30` | HTTP interno, heartbeat e JSONL | `SINKHOLE-TELEMETRY-READY` |
-| WAZUH-LAB | `10.10.10.40` | manager, indexer, dashboard e Filebeat | `WAZUH-TELEMETRY-READY` |
-| APPLIANCE-LAB | `10.10.10.50` | auditd, FIM Whodata e telemetria Linux | `APPLIANCE-TELEMETRY-READY` |
+| WIN11-LAB | `10.10.10.20` | Sysmon, PowerShell, Task Scheduler, Wazuh Agent | `LOGGING-READY` |
+| SINKHOLE-LAB | `10.10.10.30` | HTTP interno, heartbeat e JSONL | `LOGGING-READY-LINUX` |
+| WAZUH-LAB | `10.10.10.40` | manager, indexer, dashboard e Filebeat | `LOGGING-READY-LINUX` |
+| APPLIANCE-LAB | `10.10.10.50` | auditd, FIM Whodata e telemetria Linux | `LOGGING-READY-LINUX` |
 | ANALYST-LAB | `10.10.10.60` | analisi e reporting, opzionale | NOT STARTED |
 
 ## Ordine operativo
 
 ### Track A
 
-1. completare cleanup/baseline globali e inventario snapshot;
-2. creare `LOGGING-READY` e `LOGGING-READY-LINUX`;
-3. completare il primo caso interamente benigno, con detection, evidenze, cleanup, rollback e report;
-4. validare la ripetibilità end-to-end del caso.
+1. completare `CASE-01 — CaptiveCrunch / Storm-2945` in modo interamente benigno;
+2. produrre threat-intelligence brief, confidence A/B/C, mapping ATT&CK e piano di emulazione;
+3. eseguire detection, TP/TN, timeline, evidence register, cleanup e rollback;
+4. validare la ripetibilità end-to-end e pubblicare il caso sanificato.
 
 ### Track B
 
-5. costruire una sandbox distinta senza routing verso Track A, Internet o LAN reale;
+5. solo dopo il primo caso Track A completo, costruire una sandbox distinta senza routing verso Track A, Internet o LAN reale;
 6. ripetere il primo caso iniziando dall'analisi statica;
 7. eseguire dinamica soltanto quando appropriata e proporzionata;
 8. confrontare comportamento documentato, emulato e osservato;
 9. aggiornare detection, gap, tuning e report.
 
-La Track B resta `BLOCKED` finché Track A non raggiunge `LOGGING-READY` e il primo caso benigno non viene completato end-to-end. Le due track non devono essere accese contemporaneamente sullo stesso host.
+La Track B resta `BLOCKED` finché il primo caso Track A non viene completato end-to-end. Le due track non devono essere accese contemporaneamente sullo stesso host.
 
 ## Casi pianificati
 
-1. CaptiveCrunch / Storm-2945
+1. **CaptiveCrunch / Storm-2945 — READY / NEXT**
 2. ACR Stealer — Chain A e Chain B
 3. UNC1069 — fake meeting e browser extension
 4. UNC3753 / Luna Moth — vishing, RMM e data theft
